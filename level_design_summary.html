@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sokoban Level Design — Progress Summary</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    padding: 32px 24px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f7fafc;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: #718096;
+    font-size: 0.95rem;
+    margin-bottom: 40px;
+  }
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #a0aec0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 40px 0 16px;
+    border-bottom: 1px solid #2d3748;
+    padding-bottom: 8px;
+  }
+
+  /* STATUS CARDS */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card.done::before    { background: #48bb78; }
+  .card.fixed::before   { background: #ed8936; }
+  .card.pending::before { background: #4299e1; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .card-title { font-size: 1rem; font-weight: 600; color: #f7fafc; }
+  .card-meta  { font-size: 0.78rem; color: #718096; margin-top: 2px; }
+  .badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .badge-done    { background: #276749; color: #9ae6b4; }
+  .badge-fixed   { background: #744210; color: #fbd38d; }
+  .badge-pending { background: #2a4365; color: #90cdf4; }
+
+  .card-desc { font-size: 0.87rem; color: #a0aec0; margin-bottom: 14px; }
+  .card-desc strong { color: #e2e8f0; }
+
+  /* GRID PREVIEW */
+  .grid-wrap { overflow-x: auto; margin: 10px 0; }
+  .sokoban-grid {
+    display: inline-grid;
+    gap: 2px;
+    background: #0f1117;
+    padding: 4px;
+    border-radius: 6px;
+  }
+  .cell {
+    width: 22px; height: 22px;
+    border-radius: 3px;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .c-wall   { background: #2d3748; }
+  .c-floor  { background: #1a202c; border: 1px solid #2d3748; }
+  .c-player { background: #3182ce; color: #fff; }
+  .c-box    { background: #c05621; color: #fff; }
+  .c-goal   { background: #276749; color: #fff; }
+  .c-boxg   { background: #2f855a; color: #fff; }
+  .c-ice    { background: #2b6cb0; color: #bee3f8; }
+  .c-portal { background: #553c9a; color: #e9d8fd; }
+  .c-plate  { background: #975a16; color: #fefcbf; }
+  .c-doorc  { background: #4a5568; color: #e2e8f0; }
+
+  /* MECHANICS TAGS */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .tag-portal  { color: #d6bcfa; border-color: #553c9a; background: #22183a; }
+  .tag-ice     { color: #90cdf4; border-color: #2b6cb0; background: #1a2f45; }
+  .tag-door    { color: #fbd38d; border-color: #744210; background: #2d1a06; }
+  .tag-box     { color: #fbb6ce; border-color: #97266d; background: #2d0a1e; }
+  .tag-basic   { color: #9ae6b4; border-color: #276749; background: #0d2018; }
+
+  /* STATS ROW */
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .stat { font-size: 0.78rem; color: #718096; }
+  .stat span { color: #e2e8f0; font-weight: 600; }
+
+  /* MECHANICS REFERENCE */
+  .mech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .mech-card {
+    background: #1a202c;
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .mech-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+  .mech-desc  { font-size: 0.82rem; color: #a0aec0; }
+  .mech-code  {
+    font-family: 'Consolas', monospace;
+    font-size: 0.78rem;
+    background: #0f1117;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 8px;
+    color: #68d391;
+    border: 1px solid #2d3748;
+  }
+
+  /* LESSONS */
+  .lesson-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .lesson-list li {
+    background: #1a202c;
+    border-left: 3px solid #ed8936;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.87rem;
+    color: #a0aec0;
+  }
+  .lesson-list li strong { color: #f7fafc; }
+
+  /* TODO */
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #1a202c;
+    border: 1px solid #2a4365;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .todo-num {
+    background: #2b6cb0;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .todo-content { flex: 1; }
+  .todo-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; }
+  .todo-desc  { font-size: 0.82rem; color: #718096; }
+  .todo-detail { font-size: 0.8rem; color: #4299e1; margin-top: 4px; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #2d3748;
+    font-size: 0.8rem;
+    color: #4a5568;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Sokoban Level Design</h1>
+<p class="subtitle">进度总结 · 2026-06-06 · Levels 1–6 已完成 / Levels 7–8 待审查</p>
+
+<!-- ═══════════════ COMPLETED LEVELS ═══════════════ -->
+<h2>已完成关卡</h2>
+<div class="card-grid">
+
+  <!-- LEVEL 1 -->
+  <div class="card done">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 1 — Introduction</div>
+        <div class="card-meta">7×7 · parMoves = 8</div>
+      </div>
+      <span class="badge badge-done">✓ 正常</span>
+    </div>
+    <div class="card-desc">单箱单目标入门关卡。<strong>最优解 8 步。</strong>玩家 (2,2)，箱子 (2,4)，目标 (4,5)。</div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(7,22px)">
+        <!-- y=0 -->
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <!-- y=1 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=2 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-player">@</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=3 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=4 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=5 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-goal">G</div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=6 -->
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="tags"><span class="tag tag-basic">基础推箱</span></div>
+  </div>
+
+  <!-- LEVEL 2 -->
+  <div class="card done">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 2 — Portal Intro</div>
+        <div class="card-meta">9×7 · parMoves = 8</div>
+      </div>
+      <span class="badge badge-done">✓ 正常</span>
+    </div>
+    <div class="card-desc">传送门首次登场。中间隔墙隔断直接路径，<strong>传送门为必用机制。</strong>传送门对：(3,3) ↔ (5,3)。</div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(9,22px)">
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-player">@</div><div class="cell c-box">B</div><div class="cell c-portal">P</div><div class="cell c-wall"></div><div class="cell c-portal">P</div><div class="cell c-floor"></div><div class="cell c-goal">G</div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="tags"><span class="tag tag-portal">传送门</span></div>
+  </div>
+
+  <!-- LEVEL 3 -->
+  <div class="card fixed">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 3 — Ice &amp; Doors</div>
+        <div class="card-meta">9×7 · parMoves = 10</div>
+      </div>
+      <span class="badge badge-fixed">🔧 已修复</span>
+    </div>
+    <div class="card-desc">
+      <strong>原始缺陷：</strong>Goal(7,3) 可绕过门从 (7,2)/(7,4) 直接到达，门形同虚设。<br>
+      <strong>修复：</strong>在 (7,2) 和 (7,4) 添加墙砖，完全封死 Goal 侧面，强制必须踩压力板开门才能通过。
+    </div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(9,22px)">
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-box">B</div><div class="cell c-ice">~</div><div class="cell c-ice">~</div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-player">@</div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-doorc">D</div><div class="cell c-goal">G</div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="tags"><span class="tag tag-ice">冰面</span><span class="tag tag-door">门+压力板</span></div>
+  </div>
+
+  <!-- LEVEL 4 -->
+  <div class="card fixed">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 4 — Two Boxes</div>
+        <div class="card-meta">9×7 · parMoves = 14</div>
+      </div>
+      <span class="badge badge-fixed">🔧 重新设计</span>
+    </div>
+    <div class="card-desc">
+      <strong>原始问题：</strong>对称布局无设计特点，parMoves=18 但最优解仅 11 步。<br>
+      <strong>重新设计：</strong>中间竖向隔墙（x=4，仅 y=3 行开通道），两箱走不同路线。Box1 走 L 形，Box2 直线。最优解 12 步。
+    </div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(9,22px)">
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-player">@</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-goal">G</div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-goal">G</div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="tags"><span class="tag tag-box">双箱子</span></div>
+  </div>
+
+  <!-- LEVEL 5 -->
+  <div class="card fixed">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 5 — Twin Portals</div>
+        <div class="card-meta">11×7 · parMoves = 12</div>
+      </div>
+      <span class="badge badge-fixed">🔧 重新设计×2</span>
+    </div>
+    <div class="card-desc">
+      <strong>原始缺陷：</strong>传送门完全是摆设，不用传送门可直接通关。<br>
+      <strong>第一次重设计缺陷：</strong>同列传送门 (x=5) 从上下进入产生回弹循环；玩家误推箱子入传送门后卡死墙角。<br>
+      <strong>最终设计：</strong>两对同行水平传送门，<strong>箱子推入传送门直落 Goal</strong>，Goal 四面墙封死只留传送门出口。最优解 10 步。
+    </div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(11,22px)">
+        <!-- y=0 -->
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <!-- y=1 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=2 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=3 -->
+        <div class="cell c-wall"></div><div class="cell c-player">@</div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-portal">PA</div><div class="cell c-floor"></div><div class="cell c-portal">PB</div><div class="cell c-goal">G</div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <!-- y=4 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=5 -->
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-portal">PD</div><div class="cell c-floor"></div><div class="cell c-portal">PC</div><div class="cell c-goal">G</div><div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <!-- y=6 -->
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">解法 <span>Box1: 右推3次入PA→Goal1</span></div>
+      <div class="stat">解法 <span>Box2: 右推2次入PD→Goal2</span></div>
+    </div>
+    <div class="tags"><span class="tag tag-portal">传送门（必用）</span><span class="tag tag-box">双箱子</span></div>
+  </div>
+
+  <!-- LEVEL 6 -->
+  <div class="card fixed">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Level 6 — Ice Run</div>
+        <div class="card-meta">9×7 · parMoves = 15</div>
+      </div>
+      <span class="badge badge-fixed">🔧 重新设计</span>
+    </div>
+    <div class="card-desc">
+      <strong>严重缺陷：</strong>原始箱子 (4,4) 被四面墙完全包围，<strong>关卡不可解</strong>。<br>
+      <strong>重新设计：</strong>L 形冰面轨道。箱子左推沿冰面滑到 (1,4)，再上推沿冰面列滑到 Goal(1,1)。最优解 13 步。
+    </div>
+    <div class="grid-wrap">
+      <div class="sokoban-grid" style="grid-template-columns: repeat(9,22px)">
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-goal">G</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-ice">~</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-ice">~</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-ice">~</div><div class="cell c-ice">~</div><div class="cell c-ice">~</div><div class="cell c-ice">~</div><div class="cell c-ice">~</div><div class="cell c-box">B</div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-player">@</div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-floor"></div><div class="cell c-wall"></div>
+        <div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div><div class="cell c-wall"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">步骤1 <span>玩家右→推箱左→滑到(1,4)</span></div>
+      <div class="stat">步骤2 <span>玩家绕到(1,5)→推箱上→滑到Goal</span></div>
+    </div>
+    <div class="tags"><span class="tag tag-ice">冰面滑动</span></div>
+  </div>
+
+</div><!-- end card-grid -->
+
+<!-- ═══════════════ PENDING LEVELS ═══════════════ -->
+<h2>待审查关卡</h2>
+
+<div class="todo-item">
+  <div class="todo-num">7</div>
+  <div class="todo-content">
+    <div class="todo-title">Level 7 — Gates</div>
+    <div class="todo-desc">压力板 + 门机制为核心。</div>
+    <div class="todo-detail">文件：Level_07.asset · 11×9 · parMoves = 22 · 需要：可解性验证、门机制是否为必用、有无绕过方法</div>
+  </div>
+</div>
+
+<div class="todo-item">
+  <div class="todo-num">8</div>
+  <div class="todo-content">
+    <div class="todo-title">Level 8 — All Mechanics</div>
+    <div class="todo-desc">综合所有机制（冰面 + 传送门 + 门 + 多箱子）。</div>
+    <div class="todo-detail">文件：Level_08.asset · 11×9 · parMoves = 28 · 需要：所有机制是否都是必用、是否存在意外捷径</div>
+  </div>
+</div>
+
+<!-- ═══════════════ MECHANICS REFERENCE ═══════════════ -->
+<h2>机制参考</h2>
+<div class="mech-grid">
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#d6bcfa">传送门 Portal (11)</div>
+    <div class="mech-desc">实体移动到传送门格子时，瞬移到关联传送门坐标 + 原方向一格。<strong>只推荐使用水平（左右）入口</strong>，同列传送门从上下进入会产生回弹循环。</div>
+    <div class="mech-code">dest = portal.linked + dir</div>
+  </div>
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#90cdf4">冰面 Ice (7)</div>
+    <div class="mech-desc">实体被推到冰面后在同方向持续滑动，直到碰到墙/门/箱子/非冰砖为止。可用于"弹弓"机制——一次推动，长距离位移。</div>
+    <div class="mech-code">while tile == Ice: slide</div>
+  </div>
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#fbd38d">门+压力板 Door+Plate (8/10)</div>
+    <div class="mech-desc">箱子压在压力板上 → 对应门打开；箱子离开 → 门立即关闭。门关闭时不可通行（DoorClosed）。</div>
+    <div class="mech-code">doorOpen = boxes.Contains(platePos)</div>
+  </div>
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#fbb6ce">IsPassable 规则</div>
+    <div class="mech-desc">可通行：Floor、Goal、Ice、Portal、DoorOpen。<br>不可通行：Wall、DoorClosed、Empty、越界。</div>
+    <div class="mech-code">t != Wall && t != DoorClosed && t != Empty</div>
+  </div>
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#9ae6b4">星级系统</div>
+    <div class="mech-desc">3星：best ≤ parMoves<br>2星：best ≤ parMoves × 1.5<br>1星：其余</div>
+    <div class="mech-code">parMoves ≈ 最优解 + 1~2 步缓冲</div>
+  </div>
+
+  <div class="mech-card">
+    <div class="mech-title" style="color:#a0aec0">Tile 存储格式</div>
+    <div class="mech-desc">int32 小端字节序，行优先（y=0→y=height-1，每行 x=0→x=width-1）。每个 tile = 8 hex 字符。</div>
+    <div class="mech-code">1→"01000000"  11→"0b000000"</div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ LESSONS LEARNED ═══════════════ -->
+<h2>经验教训</h2>
+<ul class="lesson-list">
+  <li><strong>Goal 可达性验证（最重要）：</strong>设计完成后必须手动逐一检查每个 Goal 的四个方向，确认至少有一个非墙方向可以推入。原 Level 6 就是因为此检查缺失导致关卡完全不可解。</li>
+  <li><strong>传送门同列禁忌：</strong>posA 和 posB 在同一列（相同 x）时，从上或下进入会出现回弹或无效传送。应始终将两个传送门放在同行（相同 y），使用左右水平入口。</li>
+  <li><strong>"箱子入传送门"比"玩家入传送门"更可靠：</strong>玩家从传送门出来后的推箱逻辑容易产生歧义和死局；让箱子直接被推入传送门、传送后落在 Goal 上，设计更清晰且不会卡关。</li>
+  <li><strong>Goal 封死≠传送门必用：</strong>即使 Goal 三面是墙，如果传送门旁边还有其他 Floor 可以绕路，玩家仍然可以不用传送门。必须同时封住所有非传送门入路。</li>
+  <li><strong>parMoves 标定：</strong>先手动追踪出最优解步数，再加 1~2 步缓冲作为 parMoves。不要凭感觉估计，Level 4 原始 parMoves=18 但最优解只有 11 步就是教训。</li>
+</ul>
+
+<!-- ═══════════════ TILE TYPE REFERENCE ═══════════════ -->
+<h2>TileType 枚举速查</h2>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+  <div style="background:#1a202c;border:1px solid #2d3748;border-radius:6px;padding:8px 14px;font-size:0.82rem">
+    <span style="color:#718096">0</span> Empty &nbsp;
+    <span style="color:#718096">1</span> <span style="color:#a0aec0">Wall</span> &nbsp;
+    <span style="color:#718096">2</span> Floor &nbsp;
+    <span style="color:#718096">3</span> <span style="color:#63b3ed">Player</span> &nbsp;
+    <span style="color:#718096">4</span> <span style="color:#f6ad55">Box</span> &nbsp;
+    <span style="color:#718096">5</span> <span style="color:#68d391">Goal</span> &nbsp;
+    <span style="color:#718096">6</span> <span style="color:#48bb78">BoxOnGoal</span> &nbsp;
+    <span style="color:#718096">7</span> <span style="color:#76e4f7">Ice</span> &nbsp;
+    <span style="color:#718096">8</span> <span style="color:#f6e05e">Plate</span> &nbsp;
+    <span style="color:#718096">9</span> DoorOpen &nbsp;
+    <span style="color:#718096">10</span> <span style="color:#fc8181">DoorClosed</span> &nbsp;
+    <span style="color:#718096">11</span> <span style="color:#d6bcfa">Portal</span>
+  </div>
+</div>
+
+<footer>
+  SokobanGame Level Design Summary · Generated 2026-06-06 · Levels 1–6 完成 · Levels 7–8 待审查
+</footer>
+
+</body>
+</html>

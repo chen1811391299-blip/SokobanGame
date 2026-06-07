@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4341b16a49d76c54e8a127d8b07a16e5, type: 3}
+  m_Name: Level_21
+  m_EditorClassIdentifier: 
+  levelId: Level_21
+  levelName: Level 21 - Portal Gate Atrium
+  author: built-in
+  parMoves: 22
+  width: 9
+  height: 6
+  tiles: 01000000010000000100000001000000010000000100000001000000010000000100000001000000030000000200000004000000080000000a000000050000000200000001000000010000000200000001000000010000000100000002000000010000000200000001000000010000000b00000004000000020000000200000001000000050000000b00000001000000010000000200000002000000020000000200000002000000020000000200000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  portalPairs:
+  - posA: {x: 1, y: 3}
+    posB: {x: 7, y: 3}
+    colorId: 0
+  doorLinks:
+  - platePos: {x: 4, y: 1}
+    doorPos: {x: 5, y: 1}
