@@ -22,7 +22,8 @@ public class LevelSelectUI : MonoBehaviour
         "Medium",
         "Hard",
         "Remix",
-        "Finale"
+        "Finale",
+        "Custom"
     };
 
     private static readonly Color BgColor = new(0.07f, 0.08f, 0.12f);
@@ -177,23 +178,49 @@ public class LevelSelectUI : MonoBehaviour
             if (SaveManager.IsCompleted(data.levelId)) completed++;
             totalStars += SaveManager.GetStars(data.levelId, data.parMoves);
 
-            int act = Mathf.Clamp(i / 6, 0, ActNames.Length - 1);
-            var card = CreateLevelCard(_gridParent, i, data, IsUnlocked(lm, i), act);
+            bool isCustom = data.author != "built-in";
+            int act = isCustom ? ActNames.Length - 1 : Mathf.Clamp(i / 6, 0, ActNames.Length - 2);
+            var card = CreateLevelCard(_gridParent, i, data, IsUnlocked(lm, i), act, isCustom);
             card.SetActive(act == _selectedAct);
         }
 
         if (_progressText)
             _progressText.text = $"{completed} / {lm.LevelCount} cleared    {totalStars} / {maxStars} stars";
+
+        // Empty-state label for Custom tab — shown by SelectAct when no custom cards exist
+        bool hasCustomCards = false;
+        for (int i = 0; i < lm.LevelCount; i++)
+        {
+            var d2 = lm.GetLevel(i);
+            if (d2 != null && d2.author != "built-in") { hasCustomCards = true; break; }
+        }
+        if (!hasCustomCards)
+        {
+            var emptyGo = new GameObject("CustomEmptyLabel_Act6");
+            emptyGo.transform.SetParent(_gridParent, false);
+            var eRT = emptyGo.AddComponent<RectTransform>();
+            eRT.sizeDelta = new Vector2(600f, 80f);
+            var eTMP = emptyGo.AddComponent<TextMeshProUGUI>();
+            eTMP.text      = "No custom levels yet.\nGo to Level Editor to create one.";
+            eTMP.fontSize  = 18;
+            eTMP.alignment = TextAlignmentOptions.Center;
+            eTMP.color     = new Color(0.60f, 0.64f, 0.72f);
+            eTMP.raycastTarget = false;
+            emptyGo.SetActive(false);
+        }
     }
 
-    private GameObject CreateLevelCard(Transform parent, int index, LevelData data, bool unlocked, int act)
+    private GameObject CreateLevelCard(Transform parent, int index, LevelData data, bool unlocked, int act, bool isCustom = false)
     {
+        Color bgColor = isCustom ? CardColor : (unlocked ? CardColor : LockedColor);
         var go = CreateRect(parent, $"LevelCard_{index + 1:00}", Vector2.zero, Vector2.one,
-            Vector2.zero, Vector2.zero, unlocked ? CardColor : LockedColor);
+            Vector2.zero, Vector2.zero, bgColor);
         go.name = $"LevelCard_{index + 1:00}_Act{act + 1}";
 
+        Color numColor = isCustom ? new Color(0.28f, 0.50f, 0.70f)
+                       : (unlocked ? AccentColor : new Color(0.28f, 0.30f, 0.36f));
         var numberBg = CreateRect(go.transform, "Number", new Vector2(0f, 1f), new Vector2(0f, 1f),
-            new Vector2(30f, -28f), new Vector2(42f, 42f), unlocked ? AccentColor : new Color(0.28f, 0.30f, 0.36f));
+            new Vector2(30f, -28f), new Vector2(42f, 42f), numColor);
         CreateText(numberBg.transform, "NumberText", (index + 1).ToString("00"), Vector2.zero, Vector2.one,
             Vector2.zero, Vector2.zero, 16, TextAlignmentOptions.Center);
 
@@ -201,22 +228,34 @@ public class LevelSelectUI : MonoBehaviour
         CreateText(go.transform, "LevelName", title, new Vector2(0f, 1f), new Vector2(1f, 1f),
             new Vector2(62f, -18f), new Vector2(-18f, 46f), 15, TextAlignmentOptions.Left);
 
-        var bestMoves = SaveManager.GetBestMoves(data.levelId);
-        string best = bestMoves == int.MaxValue ? $"Par {data.parMoves}" : $"Best {bestMoves} / Par {data.parMoves}";
-        var meta = CreateText(go.transform, "Meta", best, new Vector2(0f, 1f), new Vector2(1f, 1f),
+        // Meta row: custom levels show author; built-in show best/par
+        string metaStr;
+        if (isCustom)
+            metaStr = $"by {data.author ?? "player"}";
+        else
+        {
+            var bestMoves = SaveManager.GetBestMoves(data.levelId);
+            metaStr = bestMoves == int.MaxValue ? $"Par {data.parMoves}" : $"Best {bestMoves} / Par {data.parMoves}";
+        }
+        var meta = CreateText(go.transform, "Meta", metaStr, new Vector2(0f, 1f), new Vector2(1f, 1f),
             new Vector2(20f, -76f), new Vector2(-20f, 28f), 13, TextAlignmentOptions.Left);
-        meta.color = new Color(0.72f, 0.76f, 0.86f);
+        meta.color = isCustom ? new Color(0.60f, 0.85f, 1.00f) : new Color(0.72f, 0.76f, 0.86f);
 
-        int stars = SaveManager.GetStars(data.levelId, data.parMoves);
-        string starText = unlocked ? StarText(stars) : "LOCKED";
-        var star = CreateText(go.transform, "Stars", starText, new Vector2(0f, 0f), new Vector2(1f, 0f),
-            new Vector2(20f, 18f), new Vector2(-20f, 28f), 14, TextAlignmentOptions.Left);
-        star.color = unlocked ? new Color(1f, 0.78f, 0.22f) : new Color(0.62f, 0.65f, 0.72f);
+        // Status row: custom levels show no stars; built-in show star rating or LOCKED
+        if (!isCustom)
+        {
+            int stars = SaveManager.GetStars(data.levelId, data.parMoves);
+            string starText = unlocked ? StarText(stars) : "LOCKED";
+            var star = CreateText(go.transform, "Stars", starText, new Vector2(0f, 0f), new Vector2(1f, 0f),
+                new Vector2(20f, 18f), new Vector2(-20f, 28f), 14, TextAlignmentOptions.Left);
+            star.color = unlocked ? new Color(1f, 0.78f, 0.22f) : new Color(0.62f, 0.65f, 0.72f);
+        }
 
+        bool canPlay = isCustom || unlocked;
         var button = go.AddComponent<Button>();
         button.targetGraphic = go.GetComponent<Image>();
-        button.interactable = unlocked;
-        if (unlocked)
+        button.interactable = canPlay;
+        if (canPlay)
         {
             int idx = index;
             button.onClick.AddListener(() =>

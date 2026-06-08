@@ -18,9 +18,11 @@ public class LevelEditorManager : MonoBehaviour
     private List<DoorLink> _doorLinks = new();
 
     private readonly List<EditorSnapshot> _undoStack = new();
+    private readonly List<EditorSnapshot> _redoStack = new();
     private const int MaxUndo = 100;
 
     public TileType SelectedBrush { get; set; } = TileType.Wall;
+    public bool     IsEraseMode   { get; set; } = false;
 
     private struct EditorSnapshot
     {
@@ -53,11 +55,9 @@ public class LevelEditorManager : MonoBehaviour
 
     void Update()
     {
-        if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) &&
-            Input.GetKeyDown(KeyCode.Z))
-        {
-            UndoLastAction();
-        }
+        bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        if (ctrl && Input.GetKeyDown(KeyCode.Z)) UndoLastAction();
+        if (ctrl && Input.GetKeyDown(KeyCode.Y)) RedoLastAction();
     }
 
     public void NewLevel(int w, int h)
@@ -77,6 +77,7 @@ public class LevelEditorManager : MonoBehaviour
 
         ResetMechanicState();
         _undoStack.Clear();
+        _redoStack.Clear();
         RebuildView();
         GetComponent<LevelEditorUI>()?.SyncFromLevel();
     }
@@ -92,6 +93,7 @@ public class LevelEditorManager : MonoBehaviour
         _pendingPlatePos = null;
         _nextPortalColor = _portalPairs.Count % 3;
         _undoStack.Clear();
+        _redoStack.Clear();
 
         RebuildView();
         GetComponent<LevelEditorUI>()?.SyncFromLevel();
@@ -184,6 +186,114 @@ public class LevelEditorManager : MonoBehaviour
     }
 
     public ValidationResult GetValidation() => LevelValidator.Validate(editingLevel);
+
+    public string GetPairingHint()
+    {
+        if (_pendingPortalPos.HasValue)
+            return "Click a second Portal tile to complete the pair.";
+        if (_pendingPlatePos.HasValue)
+            return "Click a Door tile to link it to the pressure plate.";
+        return null;
+    }
+
+    public void ResizeLevel(int newW, int newH)
+    {
+        newW = Mathf.Clamp(newW, 3, 20);
+        newH = Mathf.Clamp(newH, 3, 20);
+        PushUndo();
+
+        int oldW = editingLevel.width;
+        int oldH = editingLevel.height;
+        var newTiles = new int[newW * newH];
+
+        for (int y = 0; y < newH; y++)
+        for (int x = 0; x < newW; x++)
+        {
+            if (x < oldW && y < oldH)
+            {
+                newTiles[y * newW + x] = editingLevel.tiles[y * oldW + x];
+            }
+            else
+            {
+                bool border = x == 0 || x == newW - 1 || y == 0 || y == newH - 1;
+                newTiles[y * newW + x] = (int)(border ? TileType.Wall : TileType.Floor);
+            }
+        }
+
+        editingLevel.width  = newW;
+        editingLevel.height = newH;
+        editingLevel.tiles  = newTiles;
+
+        _portalPairs.RemoveAll(p =>
+            !editingLevel.IsInBounds(p.posA.x, p.posA.y) ||
+            !editingLevel.IsInBounds(p.posB.x, p.posB.y));
+        _doorLinks.RemoveAll(d =>
+            !editingLevel.IsInBounds(d.platePos.x, d.platePos.y) ||
+            !editingLevel.IsInBounds(d.doorPos.x,  d.doorPos.y));
+
+        if (_pendingPortalPos.HasValue &&
+            !editingLevel.IsInBounds(_pendingPortalPos.Value.x, _pendingPortalPos.Value.y))
+            _pendingPortalPos = null;
+
+        if (_pendingPlatePos.HasValue &&
+            !editingLevel.IsInBounds(_pendingPlatePos.Value.x, _pendingPlatePos.Value.y))
+            _pendingPlatePos = null;
+
+        ApplyMechanicData();
+        RebuildView();
+        GetComponent<LevelEditorUI>()?.SyncFromLevel();
+    }
+
+    public void ClearInterior()
+    {
+        PushUndo();
+        int w = editingLevel.width;
+        int h = editingLevel.height;
+        for (int y = 1; y < h - 1; y++)
+        for (int x = 1; x < w - 1; x++)
+            editingLevel.SetTile(x, y, TileType.Floor);
+
+        _portalPairs.Clear();
+        _doorLinks.Clear();
+        _pendingPortalPos = null;
+        _pendingPlatePos  = null;
+        _nextPortalColor  = 0;
+        ApplyMechanicData();
+        RebuildView();
+    }
+
+    public void UndoLastAction()
+    {
+        if (_undoStack.Count == 0) return;
+        if (_redoStack.Count >= MaxUndo) _redoStack.RemoveAt(0);
+        _redoStack.Add(CaptureSnapshot());
+        var snapshot = _undoStack[^1];
+        _undoStack.RemoveAt(_undoStack.Count - 1);
+        RestoreSnapshot(snapshot);
+        RebuildView();
+        GetComponent<LevelEditorUI>()?.SyncFromLevel();
+    }
+
+    public void RedoLastAction()
+    {
+        if (_redoStack.Count == 0) return;
+        if (_undoStack.Count >= MaxUndo) _undoStack.RemoveAt(0);
+        _undoStack.Add(CaptureSnapshot());
+        var snapshot = _redoStack[^1];
+        _redoStack.RemoveAt(_redoStack.Count - 1);
+        RestoreSnapshot(snapshot);
+        RebuildView();
+        GetComponent<LevelEditorUI>()?.SyncFromLevel();
+    }
+
+    private void PushUndo()
+    {
+        if (editingLevel == null) return;
+        if (_undoStack.Count >= MaxUndo)
+            _undoStack.RemoveAt(0);
+        _undoStack.Add(CaptureSnapshot());
+        _redoStack.Clear();
+    }
 
     private void HandlePortalPlacement(Vector2Int pos)
     {
@@ -355,24 +465,6 @@ public class LevelEditorManager : MonoBehaviour
             affected.Add(pos);
         }
         return affected;
-    }
-
-    private void UndoLastAction()
-    {
-        if (_undoStack.Count == 0) return;
-        var snapshot = _undoStack[^1];
-        _undoStack.RemoveAt(_undoStack.Count - 1);
-        RestoreSnapshot(snapshot);
-        RebuildView();
-        GetComponent<LevelEditorUI>()?.SyncFromLevel();
-    }
-
-    private void PushUndo()
-    {
-        if (editingLevel == null) return;
-        if (_undoStack.Count >= MaxUndo)
-            _undoStack.RemoveAt(0);
-        _undoStack.Add(CaptureSnapshot());
     }
 
     private EditorSnapshot CaptureSnapshot() => new EditorSnapshot

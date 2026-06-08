@@ -83,7 +83,9 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
         int y = Mathf.FloorToInt((local.y - rect.yMin) / tileSize);
         if (_data == null || !_data.IsInBounds(x, y)) return;
 
-        if (e.button == PointerEventData.InputButton.Right)
+        bool erase = e.button == PointerEventData.InputButton.Right
+                     || (LevelEditorManager.Instance?.IsEraseMode ?? false);
+        if (erase)
             LevelEditorManager.Instance?.EraseTile(x, y);
         else
             LevelEditorManager.Instance?.PlaceTile(x, y);

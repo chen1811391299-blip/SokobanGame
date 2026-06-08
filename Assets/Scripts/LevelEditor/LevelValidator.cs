@@ -10,6 +10,7 @@ public struct ValidationResult
     public bool PortalsPaired;
     public bool DoorsLinked;
     public string ErrorMessage;
+    public string[] Warnings;   // never null after Validate()
 }
 
 public static class LevelValidator
@@ -20,7 +21,8 @@ public static class LevelValidator
         {
             IsValid = true,
             PortalsPaired = true,
-            DoorsLinked = true
+            DoorsLinked = true,
+            Warnings = System.Array.Empty<string>()
         };
 
         if (data == null || data.tiles == null || data.tiles.Length != data.width * data.height)
@@ -86,7 +88,84 @@ public static class LevelValidator
             return Invalid(r, doorError);
         }
 
+        // BFS reachability — hard error
+        var reachable = BfsFromPlayer(data);
+        for (int y = 0; y < data.height; y++)
+        for (int x = 0; x < data.width; x++)
+        {
+            var tile = data.GetTile(x, y);
+            if (tile == TileType.Wall || tile == TileType.Empty) continue;
+            if (!reachable.Contains(new Vector2Int(x, y)))
+                return Invalid(r, "Unreachable tiles detected. All floor areas must connect to the player start.");
+        }
+
+        // Warnings (do not set IsValid = false)
+        var warnings = new List<string>();
+
+        for (int y = 0; y < data.height; y++)
+        for (int x = 0; x < data.width; x++)
+        {
+            if (data.GetTile(x, y) == TileType.Box && IsCornerBox(data, x, y))
+                warnings.Add($"Box at ({x},{y}) is in a corner and cannot be pushed to a goal.");
+        }
+
+        if (r.BoxCount > 6)
+            warnings.Add($"High box count ({r.BoxCount}). Custom levels with many boxes may be very hard to solve.");
+
+        if (data.parMoves == 20)
+            warnings.Add("Par moves is still the default (20). Consider setting a real target.");
+
+        r.Warnings = warnings.ToArray();
         return r;
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private static bool IsPassable(TileType t) =>
+        t != TileType.Wall && t != TileType.Empty;
+
+    private static bool IsWallOrOutOfBounds(LevelData data, int x, int y) =>
+        !data.IsInBounds(x, y) || data.GetTile(x, y) == TileType.Wall;
+
+    private static bool IsCornerBox(LevelData data, int x, int y)
+    {
+        bool left  = IsWallOrOutOfBounds(data, x - 1, y);
+        bool right = IsWallOrOutOfBounds(data, x + 1, y);
+        bool down  = IsWallOrOutOfBounds(data, x, y - 1);
+        bool up    = IsWallOrOutOfBounds(data, x, y + 1);
+        return (left || right) && (down || up);
+    }
+
+    private static HashSet<Vector2Int> BfsFromPlayer(LevelData data)
+    {
+        var visited = new HashSet<Vector2Int>();
+        Vector2Int? start = null;
+        for (int y = 0; y < data.height && start == null; y++)
+        for (int x = 0; x < data.width  && start == null; x++)
+            if (data.GetTile(x, y) == TileType.Player)
+                start = new Vector2Int(x, y);
+
+        if (start == null) return visited;
+
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(start.Value);
+        visited.Add(start.Value);
+
+        var dirs = new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            foreach (var d in dirs)
+            {
+                var next = cur + d;
+                if (!data.IsInBounds(next.x, next.y)) continue;
+                if (visited.Contains(next)) continue;
+                if (!IsPassable(data.GetTile(next.x, next.y))) continue;
+                visited.Add(next);
+                queue.Enqueue(next);
+            }
+        }
+        return visited;
     }
 
     private static bool ValidatePortals(LevelData data, int portalCount, out string error)
@@ -131,7 +210,7 @@ public static class LevelValidator
         if (plateCount == 0 && doorCount == 0 && links.Length == 0)
             return true;
 
-        var linkedDoors = new HashSet<Vector2Int>();
+        var linkedDoors  = new HashSet<Vector2Int>();
         var linkedPlates = new HashSet<Vector2Int>();
         foreach (var link in links)
         {

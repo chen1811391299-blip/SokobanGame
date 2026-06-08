@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,34 +8,46 @@ public class LevelEditorUI : MonoBehaviour
     [Header("Toolbar")]
     public Button btnBack;
     public Button btnNew;
-    public Button btnLoadSaved;
+    public Button btnUndo;
+    public Button btnRedo;
+    public Button btnClear;
     public Button btnSave;
     public Button btnTestPlay;
     public TMP_InputField levelNameInput;
     public TMP_InputField parMovesInput;
 
-    [Header("Brush Buttons")]
-    public Button[] brushButtons;
+    [Header("Resize")]
+    public TMP_InputField widthInput;
+    public TMP_InputField heightInput;
+    public Button btnResize;
 
-    [Header("Validation")]
+    [Header("Brush Bar")]
+    public Button[] brushButtons;   // indices 0-11 = TileType values; 12 = Erase
+
+    [Header("Validation Panel")]
     public TextMeshProUGUI playerCountText;
     public TextMeshProUGUI boxCountText;
     public TextMeshProUGUI goalCountText;
     public TextMeshProUGUI portalStatusText;
     public TextMeshProUGUI doorStatusText;
     public TextMeshProUGUI errorText;
+    public TextMeshProUGUI warningsText;
+    public TextMeshProUGUI hintText;
 
-    [Header("Map Size")]
-    public TMP_InputField widthInput;
-    public TMP_InputField heightInput;
-    public Button btnResize;
+    [Header("Level List Panel")]
+    public Transform levelListContent;
+    public Button    btnLoadSelected;
+    public Button    btnDelete;
 
     private LevelEditorManager _editor;
+    private Color[] _brushOriginalColors;
+    private int     _selectedBrushIdx = 1;      // default: Wall brush
+    private string  _selectedLevelId  = null;
+    private const int EraseBrushIdx   = 12;
 
     void Start()
     {
         _editor = LevelEditorManager.Instance;
-        EnsureOptionalControls();
 
         btnBack?.onClick.AddListener(() =>
         {
@@ -43,12 +56,16 @@ public class LevelEditorUI : MonoBehaviour
         });
 
         btnNew?.onClick.AddListener(() => _editor?.NewLevel(8, 8));
-        btnLoadSaved?.onClick.AddListener(() => _editor?.LoadLatestSaved());
+
+        btnUndo?.onClick.AddListener(() => _editor?.UndoLastAction());
+        btnRedo?.onClick.AddListener(() => _editor?.RedoLastAction());
+        btnClear?.onClick.AddListener(() => _editor?.ClearInterior());
 
         btnSave?.onClick.AddListener(() =>
         {
             SyncInputsToLevel();
             _editor?.Save();
+            RefreshLevelList();
         });
 
         btnTestPlay?.onClick.AddListener(() =>
@@ -61,13 +78,22 @@ public class LevelEditorUI : MonoBehaviour
         {
             if (int.TryParse(widthInput?.text, out int w) &&
                 int.TryParse(heightInput?.text, out int h))
-            {
-                _editor?.NewLevel(Mathf.Clamp(w, 3, 20), Mathf.Clamp(h, 3, 20));
-            }
+                _editor?.ResizeLevel(w, h);
         });
 
+        btnLoadSelected?.onClick.AddListener(OnLoadSelected);
+        btnDelete?.onClick.AddListener(OnDeleteSelected);
+
+        // Cache original brush button colors, then wire click handlers
         if (brushButtons != null)
         {
+            _brushOriginalColors = new Color[brushButtons.Length];
+            for (int i = 0; i < brushButtons.Length; i++)
+            {
+                var img = brushButtons[i]?.GetComponent<Image>();
+                _brushOriginalColors[i] = img ? img.color : Color.gray;
+            }
+
             for (int i = 0; i < brushButtons.Length; i++)
             {
                 int idx = i;
@@ -76,21 +102,12 @@ public class LevelEditorUI : MonoBehaviour
         }
 
         SyncFromLevel();
+        RefreshLevelList();
+        SelectBrush(_selectedBrushIdx);
         InvokeRepeating(nameof(RefreshValidation), 0f, 0.3f);
     }
 
-    private void EnsureOptionalControls()
-    {
-        var toolbar = GameObject.Find("Toolbar")?.transform;
-        if (toolbar == null) return;
-
-        btnBack ??= FindButton(toolbar, "BtnBack") ??
-            CreateToolbarButton(toolbar, "BtnBack", "Back", new Vector2(720f, -7.5f), new Vector2(80f, 40f));
-        btnLoadSaved ??= FindButton(toolbar, "BtnLoadSaved") ??
-            CreateToolbarButton(toolbar, "BtnLoadSaved", "Load", new Vector2(805f, -7.5f), new Vector2(80f, 40f));
-        parMovesInput ??= FindInput(toolbar, "ParMovesInput") ??
-            CreateToolbarInput(toolbar, "ParMovesInput", new Vector2(890f, -7.5f), new Vector2(70f, 40f), "20");
-    }
+    // ── Public API ────────────────────────────────────────────────────────────
 
     public void SyncFromLevel()
     {
@@ -99,10 +116,62 @@ public class LevelEditorUI : MonoBehaviour
         if (level == null) return;
 
         if (levelNameInput) levelNameInput.text = level.levelName;
-        if (parMovesInput) parMovesInput.text = Mathf.Max(1, level.parMoves).ToString();
-        if (widthInput) widthInput.text = level.width.ToString();
-        if (heightInput) heightInput.text = level.height.ToString();
+        if (parMovesInput)  parMovesInput.text  = Mathf.Max(1, level.parMoves).ToString();
+        if (widthInput)     widthInput.text     = level.width.ToString();
+        if (heightInput)    heightInput.text    = level.height.ToString();
     }
+
+    public void ShowValidationError(string msg)
+    {
+        if (errorText) errorText.text = msg;
+    }
+
+    public void RefreshLevelList()
+    {
+        if (levelListContent == null) return;
+
+        foreach (Transform child in levelListContent)
+            Destroy(child.gameObject);
+
+        _selectedLevelId = null;
+        UpdateListButtons();
+
+        var metas = LevelSerializer.GetAllLevelMeta();
+        foreach (var (id, name, modified) in metas)
+        {
+            string capturedId = id;
+            var entryGo = new GameObject($"Entry_{id}");
+            entryGo.transform.SetParent(levelListContent, false);
+
+            var rt = entryGo.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 1);
+            rt.anchorMax = new Vector2(1, 1);
+            rt.pivot     = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(0, 36f);
+
+            var img = entryGo.AddComponent<Image>();
+            img.color = new Color(0.15f, 0.18f, 0.25f);
+
+            var btn = entryGo.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.onClick.AddListener(() => SelectListEntry(capturedId, img));
+
+            var label = new GameObject("Label");
+            label.transform.SetParent(entryGo.transform, false);
+            var labelRt = label.AddComponent<RectTransform>();
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = new Vector2(6, 2);
+            labelRt.offsetMax = new Vector2(-4, -2);
+            var tmp = label.AddComponent<TextMeshProUGUI>();
+            tmp.text      = $"{name}\n<size=10><color=#aaaaaa>{modified:yyyy-MM-dd}</color></size>";
+            tmp.fontSize  = 12;
+            tmp.color     = Color.white;
+            tmp.raycastTarget = false;
+        }
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────────
 
     private void SyncInputsToLevel()
     {
@@ -111,7 +180,8 @@ public class LevelEditorUI : MonoBehaviour
         if (level == null) return;
 
         if (levelNameInput)
-            level.levelName = string.IsNullOrWhiteSpace(levelNameInput.text) ? "New Level" : levelNameInput.text.Trim();
+            level.levelName = string.IsNullOrWhiteSpace(levelNameInput.text)
+                ? "New Level" : levelNameInput.text.Trim();
 
         if (parMovesInput && int.TryParse(parMovesInput.text, out int par))
             level.parMoves = Mathf.Max(1, par);
@@ -120,104 +190,110 @@ public class LevelEditorUI : MonoBehaviour
     private void SelectBrush(int idx)
     {
         _editor ??= LevelEditorManager.Instance;
-        if (_editor != null)
+        if (_editor == null || brushButtons == null) return;
+
+        // Restore previous button colour
+        if (_selectedBrushIdx < brushButtons.Length)
+        {
+            var prevImg = brushButtons[_selectedBrushIdx]?.GetComponent<Image>();
+            if (prevImg != null && _brushOriginalColors != null && _selectedBrushIdx < _brushOriginalColors.Length)
+                prevImg.color = _brushOriginalColors[_selectedBrushIdx];
+        }
+
+        _selectedBrushIdx = idx;
+
+        if (idx == EraseBrushIdx)
+        {
+            _editor.IsEraseMode = true;
+        }
+        else
+        {
+            _editor.IsEraseMode   = false;
             _editor.SelectedBrush = (TileType)idx;
+        }
+
+        // Highlight selected button with white tint
+        if (idx < brushButtons.Length)
+        {
+            var img = brushButtons[idx]?.GetComponent<Image>();
+            if (img) img.color = Color.white;
+        }
     }
 
-    void RefreshValidation()
+    private void SelectListEntry(string id, Image img)
+    {
+        // Deselect all entries
+        if (levelListContent != null)
+            foreach (Transform child in levelListContent)
+            {
+                var childImg = child.GetComponent<Image>();
+                if (childImg) childImg.color = new Color(0.15f, 0.18f, 0.25f);
+            }
+
+        _selectedLevelId = id;
+        if (img) img.color = new Color(0.22f, 0.45f, 0.88f);
+        UpdateListButtons();
+    }
+
+    private void OnLoadSelected()
+    {
+        if (string.IsNullOrEmpty(_selectedLevelId)) return;
+        var data = LevelSerializer.Load(_selectedLevelId);
+        if (data != null)
+        {
+            _editor?.LoadLevelForEditing(data);
+            SyncFromLevel();
+        }
+    }
+
+    private void OnDeleteSelected()
+    {
+        if (string.IsNullOrEmpty(_selectedLevelId)) return;
+        LevelSerializer.Delete(_selectedLevelId);
+        _selectedLevelId = null;
+        RefreshLevelList();
+    }
+
+    private void UpdateListButtons()
+    {
+        bool hasSelection = !string.IsNullOrEmpty(_selectedLevelId);
+        if (btnLoadSelected) btnLoadSelected.interactable = hasSelection;
+        if (btnDelete)       btnDelete.interactable       = hasSelection;
+    }
+
+    private void RefreshValidation()
     {
         _editor ??= LevelEditorManager.Instance;
         if (_editor?.editingLevel == null) return;
 
+        // Mechanic-pairing hint takes priority over error/warning display
+        string hint = _editor.GetPairingHint();
+        if (hintText) hintText.text = hint ?? "";
+
         var v = _editor.GetValidation();
-        if (playerCountText) playerCountText.text = $"Player: {v.PlayerCount}";
-        if (boxCountText) boxCountText.text = $"Boxes: {v.BoxCount}";
-        if (goalCountText) goalCountText.text = $"Goals: {v.GoalCount}";
-        if (portalStatusText) portalStatusText.text = v.PortalsPaired ? "OK Portals paired" : "ERR Unpaired portals";
-        if (doorStatusText) doorStatusText.text = v.DoorsLinked ? "OK Doors linked" : "ERR Doors unlinked";
+
+        if (playerCountText) playerCountText.text = $"{(v.PlayerCount == 1    ? "✓" : "✗")} Player: {v.PlayerCount}";
+        if (boxCountText)    boxCountText.text    = $"{(v.BoxCount > 0 && v.BoxCount == v.GoalCount ? "✓" : "✗")} Boxes: {v.BoxCount}";
+        if (goalCountText)   goalCountText.text   = $"{(v.GoalCount > 0 && v.BoxCount == v.GoalCount ? "✓" : "✗")} Goals: {v.GoalCount}";
+        if (portalStatusText) portalStatusText.text = v.PortalsPaired ? "✓ Portals OK" : "✗ Portals unpaired";
+        if (doorStatusText)   doorStatusText.text   = v.DoorsLinked   ? "✓ Doors OK"   : "✗ Doors unlinked";
+
         if (errorText)
-            errorText.text = v.IsValid ? "" : v.ErrorMessage;
-    }
+        {
+            errorText.text  = v.IsValid ? "" : v.ErrorMessage;
+            errorText.color = Color.red;
+        }
 
-    public void ShowValidationError(string msg)
-    {
-        if (errorText) errorText.text = msg;
-    }
+        if (warningsText)
+        {
+            warningsText.text  = v.Warnings != null && v.Warnings.Length > 0
+                ? string.Join("\n", v.Warnings)
+                : "";
+            warningsText.color = new Color(1f, 0.75f, 0.1f);
+        }
 
-    private static Button FindButton(Transform parent, string name) =>
-        parent.Find(name)?.GetComponent<Button>();
-
-    private static TMP_InputField FindInput(Transform parent, string name) =>
-        parent.Find(name)?.GetComponent<TMP_InputField>();
-
-    private static Button CreateToolbarButton(Transform parent, string name, string label, Vector2 position, Vector2 size)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.zero;
-        rt.pivot = Vector2.zero;
-        rt.sizeDelta = size;
-        rt.anchoredPosition = position;
-        go.AddComponent<Image>().color = new Color(0.25f, 0.45f, 0.85f);
-        var button = go.AddComponent<Button>();
-        CreateToolbarLabel(go.transform, label, 17);
-        return button;
-    }
-
-    private static TMP_InputField CreateToolbarInput(Transform parent, string name, Vector2 position, Vector2 size, string value)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.zero;
-        rt.pivot = Vector2.zero;
-        rt.sizeDelta = size;
-        rt.anchoredPosition = position;
-        go.AddComponent<Image>().color = new Color(0.15f, 0.15f, 0.2f);
-
-        var textArea = new GameObject("TextArea");
-        textArea.transform.SetParent(go.transform, false);
-        var textAreaRt = textArea.AddComponent<RectTransform>();
-        textAreaRt.anchorMin = Vector2.zero;
-        textAreaRt.anchorMax = Vector2.one;
-        textAreaRt.offsetMin = new Vector2(4f, 2f);
-        textAreaRt.offsetMax = new Vector2(-4f, -2f);
-        textArea.AddComponent<RectMask2D>();
-
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(textArea.transform, false);
-        var textRt = textGo.AddComponent<RectTransform>();
-        textRt.anchorMin = Vector2.zero;
-        textRt.anchorMax = Vector2.one;
-        textRt.offsetMin = Vector2.zero;
-        textRt.offsetMax = Vector2.zero;
-        var tmp = textGo.AddComponent<TextMeshProUGUI>();
-        tmp.fontSize = 16;
-        tmp.color = Color.white;
-
-        var input = go.AddComponent<TMP_InputField>();
-        input.textComponent = tmp;
-        input.textViewport = textAreaRt;
-        input.text = value;
-        return input;
-    }
-
-    private static void CreateToolbarLabel(Transform parent, string label, int fontSize)
-    {
-        var go = new GameObject("Label");
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = label;
-        tmp.fontSize = fontSize;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.color = Color.white;
+        bool canAct = v.IsValid;
+        if (btnSave)     btnSave.interactable     = canAct;
+        if (btnTestPlay) btnTestPlay.interactable = canAct;
     }
 }

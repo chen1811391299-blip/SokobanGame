@@ -17,7 +17,7 @@ public static class LevelSerializer
         var json = JsonUtility.ToJson(LevelDataJson.From(data), prettyPrint: true);
         var path = Path.Combine(LevelsDir, $"{data.levelId}.json");
         File.WriteAllText(path, json);
-        Debug.Log($"[LevelSerializer] 已保存: {path}");
+        Debug.Log($"[LevelSerializer] Saved: {path}");
     }
 
     public static LevelData Load(string levelId)
@@ -55,5 +55,35 @@ public static class LevelSerializer
         for (int i = 0; i < files.Length; i++)
             ids[i] = Path.GetFileNameWithoutExtension(files[i]);
         return ids;
+    }
+
+    public static void Delete(string levelId)
+    {
+        var path = Path.Combine(LevelsDir, $"{levelId}.json");
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    public static (string id, string name, System.DateTime modified)[] GetAllLevelMeta()
+    {
+        if (!Directory.Exists(LevelsDir))
+            return System.Array.Empty<(string, string, System.DateTime)>();
+
+        var files = Directory.GetFiles(LevelsDir, "*.json");
+        var result = new System.Collections.Generic.List<(string, string, System.DateTime)>();
+        foreach (var file in files)
+        {
+            try
+            {
+                var id       = Path.GetFileNameWithoutExtension(file);
+                var json     = File.ReadAllText(file);
+                var dto      = JsonUtility.FromJson<LevelDataJson>(json);
+                var modified = File.GetLastWriteTime(file);
+                result.Add((id, dto?.name ?? id, modified));
+            }
+            catch { /* skip malformed files */ }
+        }
+        result.Sort((a, b) => b.Item3.CompareTo(a.Item3)); // newest first
+        return result.ToArray();
     }
 }

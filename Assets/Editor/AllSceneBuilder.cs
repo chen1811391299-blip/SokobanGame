@@ -262,71 +262,147 @@ public static class AllSceneBuilder
 
         var cvs = Canvas();
 
-        // Top toolbar
-        var toolbar = new GameObject("Toolbar"); toolbar.transform.SetParent(cvs.transform, false);
+        // ── Top Toolbar (55px, full width) ────────────────────────────────
+        var toolbar = new GameObject("Toolbar");
+        toolbar.transform.SetParent(cvs.transform, false);
         var tbRT = toolbar.AddComponent<RectTransform>();
         tbRT.anchorMin = new Vector2(0,1); tbRT.anchorMax = new Vector2(1,1);
         tbRT.offsetMin = new Vector2(0,-55); tbRT.offsetMax = Vector2.zero;
         toolbar.AddComponent<Image>().color = new Color(.13f,.13f,.18f,1f);
 
-        var btnBack     = BtnAbs(toolbar.transform,"BtnBack",     "Back",     new Vector2(5,-7.5f),   new Vector2(80,40));
-        var btnNew      = BtnAbs(toolbar.transform,"BtnNew",      "New",      new Vector2(95,-7.5f),  new Vector2(80,40));
-        var btnLoad     = BtnAbs(toolbar.transform,"BtnLoadSaved","Load",     new Vector2(185,-7.5f), new Vector2(80,40));
-        var btnSave     = BtnAbs(toolbar.transform,"BtnSave",     "Save",     new Vector2(275,-7.5f), new Vector2(80,40));
-        var btnTest     = BtnAbs(toolbar.transform,"BtnTestPlay", "Test Play",new Vector2(365,-7.5f), new Vector2(110,40));
-        btnTest.GetComponent<Image>().color = new Color(.2f,.7f,.3f);
-        var nameIn  = Input_(toolbar.transform,"LevelNameInput",new Vector2(490,-7.5f),new Vector2(180,40));
-        var parIn   = Input_(toolbar.transform,"ParMovesInput", new Vector2(685,-7.5f),new Vector2(70,40));
+        var btnBack  = BtnAbs(toolbar.transform,"BtnBack",  "Back",  new Vector2(5,-7.5f),   new Vector2(72,40));
+        btnBack.GetComponent<Image>().color = new Color(.55f,.20f,.20f);
+        var btnNew   = BtnAbs(toolbar.transform,"BtnNew",   "New",   new Vector2(82,-7.5f),  new Vector2(72,40));
+        var btnUndo  = BtnAbs(toolbar.transform,"BtnUndo",  "Undo",  new Vector2(159,-7.5f), new Vector2(72,40));
+        var btnRedo  = BtnAbs(toolbar.transform,"BtnRedo",  "Redo",  new Vector2(236,-7.5f), new Vector2(72,40));
+        var btnClear = BtnAbs(toolbar.transform,"BtnClear", "Clear", new Vector2(313,-7.5f), new Vector2(72,40));
+        btnClear.GetComponent<Image>().color = new Color(.50f,.35f,.10f);
+
+        var nameIn = Input_(toolbar.transform,"LevelNameInput", new Vector2(400,-7.5f), new Vector2(200,40));
+        var parLbl = BtnAbs(toolbar.transform,"ParLabel","Par", new Vector2(607,-7.5f), new Vector2(36,40));
+        parLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
+        parLbl.GetComponent<Button>().interactable = false;
+        var parIn = Input_(toolbar.transform,"ParMovesInput", new Vector2(647,-7.5f), new Vector2(55,40));
         parIn.GetComponent<TMP_InputField>().text = "20";
-        var wIn     = Input_(toolbar.transform,"WidthInput",    new Vector2(770,-7.5f),new Vector2(55,40));
+
+        var wLbl = BtnAbs(toolbar.transform,"WLabel","W", new Vector2(715,-7.5f), new Vector2(22,40));
+        wLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
+        wLbl.GetComponent<Button>().interactable = false;
+        var wIn  = Input_(toolbar.transform,"WidthInput",  new Vector2(741,-7.5f), new Vector2(45,40));
         wIn.GetComponent<TMP_InputField>().text = "8";
-        var hIn     = Input_(toolbar.transform,"HeightInput",   new Vector2(830,-7.5f),new Vector2(55,40));
+        var hLbl = BtnAbs(toolbar.transform,"HLabel","H", new Vector2(791,-7.5f), new Vector2(22,40));
+        hLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
+        hLbl.GetComponent<Button>().interactable = false;
+        var hIn  = Input_(toolbar.transform,"HeightInput", new Vector2(817,-7.5f), new Vector2(45,40));
         hIn.GetComponent<TMP_InputField>().text = "8";
-        var btnResize = BtnAbs(toolbar.transform,"BtnResize","Resize",new Vector2(890,-7.5f),new Vector2(85,40));
+        var btnResize = BtnAbs(toolbar.transform,"BtnResize","Resize", new Vector2(867,-7.5f), new Vector2(75,40));
 
-        // Left brush panel
-        var brushPanel = new GameObject("BrushPanel"); brushPanel.transform.SetParent(cvs.transform, false);
-        var bpRT = brushPanel.AddComponent<RectTransform>();
-        bpRT.anchorMin = new Vector2(0,0); bpRT.anchorMax = new Vector2(0,1);
-        bpRT.offsetMin = Vector2.zero; bpRT.offsetMax = new Vector2(115,-55);
-        brushPanel.AddComponent<Image>().color = new Color(.11f,.11f,.17f,1f);
+        var btnSave = BtnAbs(toolbar.transform,"BtnSave",    "Save",      new Vector2(955,-7.5f),  new Vector2(85,40));
+        btnSave.GetComponent<Image>().color = new Color(.20f,.48f,.22f);
+        var btnTest = BtnAbs(toolbar.transform,"BtnTestPlay","Test Play", new Vector2(1045,-7.5f), new Vector2(105,40));
+        btnTest.GetComponent<Image>().color = new Color(.18f,.38f,.70f);
 
-        string[] blabels = {"Empty","Wall","Floor","Player","Box","Goal","Box+Goal","Ice","Plate","Door(O)","Door(C)","Portal"};
-        Color[]  bcolors =
+        // ── Right Panel (180px, spans full height minus toolbar/brush bar) ──
+        var rightPanel = new GameObject("RightPanel");
+        rightPanel.transform.SetParent(cvs.transform, false);
+        var rpRT = rightPanel.AddComponent<RectTransform>();
+        rpRT.anchorMin = new Vector2(1,0); rpRT.anchorMax = new Vector2(1,1);
+        rpRT.offsetMin = new Vector2(-180,50); rpRT.offsetMax = new Vector2(0,-55);
+        rightPanel.AddComponent<Image>().color = new Color(.10f,.10f,.16f,1f);
+
+        // Validation rows — using absolute Y from top (negative values, anchor top-left)
+        float vy = -8f;
+        var pcTMP  = ValTMPAt(rightPanel.transform,"PlayerCount",  "Player: 0",  vy);           vy -= 24f;
+        var bcTMP  = ValTMPAt(rightPanel.transform,"BoxCount",     "Boxes: 0",   vy);           vy -= 24f;
+        var gcTMP  = ValTMPAt(rightPanel.transform,"GoalCount",    "Goals: 0",   vy);           vy -= 24f;
+        var prTMP  = ValTMPAt(rightPanel.transform,"PortalStatus", "Portals OK", vy);           vy -= 24f;
+        var drTMP  = ValTMPAt(rightPanel.transform,"DoorStatus",   "Doors OK",   vy);           vy -= 24f;
+        var errTMP = ValTMPAt(rightPanel.transform,"ErrorText",    "",           vy, Color.red, 12, 30f); vy -= 34f;
+        var wrnTMP = ValTMPAt(rightPanel.transform,"WarningsText", "",           vy, new Color(1f,.75f,.1f), 11, 50f); vy -= 54f;
+        var hntTMP = ValTMPAt(rightPanel.transform,"HintText",     "",           vy, new Color(.5f,.85f,1f), 11, 30f); vy -= 34f;
+        ValTMPAt(rightPanel.transform,"ListHeader","-- Saved Levels --", vy, new Color(.5f,.5f,.6f), 10); vy -= 24f;
+
+        // Scrollable level list — spans from current vy to 80px from panel bottom
+        var listViewport = new GameObject("ListViewport");
+        listViewport.transform.SetParent(rightPanel.transform, false);
+        var lvRT = listViewport.AddComponent<RectTransform>();
+        lvRT.anchorMin = new Vector2(0,0); lvRT.anchorMax = new Vector2(1,1);
+        lvRT.offsetMin = new Vector2(4,80);
+        lvRT.offsetMax = new Vector2(-4,vy);
+        listViewport.AddComponent<Image>().color = new Color(.08f,.08f,.12f);
+        listViewport.AddComponent<Mask>().showMaskGraphic = false;
+
+        var listContent = new GameObject("ListContent");
+        listContent.transform.SetParent(listViewport.transform, false);
+        var lcRT = listContent.AddComponent<RectTransform>();
+        lcRT.anchorMin = new Vector2(0,1); lcRT.anchorMax = new Vector2(1,1);
+        lcRT.pivot = new Vector2(.5f,1f);
+        lcRT.offsetMin = Vector2.zero; lcRT.offsetMax = Vector2.zero;
+        var vlg = listContent.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing = 2f;
+        vlg.childForceExpandWidth  = true;
+        vlg.childForceExpandHeight = false;
+        vlg.childControlHeight = true;
+        listContent.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        var listScroll = listViewport.AddComponent<ScrollRect>();
+        listScroll.content         = lcRT;
+        listScroll.viewport        = lvRT;
+        listScroll.horizontal      = false;
+        listScroll.vertical        = true;
+        listScroll.movementType    = ScrollRect.MovementType.Clamped;
+        listScroll.scrollSensitivity = 20f;
+
+        // Load Selected / Delete buttons at bottom of right panel
+        var btnLoad = BtnAbs(rightPanel.transform,"BtnLoadSelected","Load Selected", new Vector2(4,42), new Vector2(172,34));
+        btnLoad.GetComponent<Image>().color = new Color(.18f,.40f,.18f);
+        var btnDel  = BtnAbs(rightPanel.transform,"BtnDelete","Delete",              new Vector2(4,4),  new Vector2(172,34));
+        btnDel.GetComponent<Image>().color = new Color(.45f,.15f,.15f);
+
+        // ── Bottom Brush Bar (50px, full width minus right panel) ─────────
+        var brushBar = new GameObject("BrushBar");
+        brushBar.transform.SetParent(cvs.transform, false);
+        var bbRT = brushBar.AddComponent<RectTransform>();
+        bbRT.anchorMin = new Vector2(0,0); bbRT.anchorMax = new Vector2(1,0);
+        bbRT.offsetMin = Vector2.zero; bbRT.offsetMax = new Vector2(-180,50);
+        brushBar.AddComponent<Image>().color = new Color(.11f,.11f,.17f,1f);
+
+        var hlg = brushBar.AddComponent<HorizontalLayoutGroup>();
+        hlg.padding = new RectOffset(6,6,6,6);
+        hlg.spacing = 4f;
+        hlg.childForceExpandWidth  = false;
+        hlg.childForceExpandHeight = true;
+
+        string[] blabels = {"Empty","Wall","Floor","Player","Box","Goal","Box+Goal","Ice","Plate","Door(O)","Door(C)","Portal","Erase"};
+        Color[] bcolors =
         {
             new Color(.15f,.15f,.15f), new Color(.35f,.35f,.35f), new Color(.55f,.50f,.40f),
             new Color(.10f,.50f,.90f), new Color(.70f,.40f,.10f), new Color(.95f,.85f,.10f),
             new Color(.15f,.72f,.20f), new Color(.60f,.88f,1.0f), new Color(.80f,.25f,.90f),
             new Color(.12f,.80f,.25f), new Color(.80f,.12f,.12f), new Color(.00f,.50f,1.0f),
+            new Color(.40f,.40f,.40f)  // Erase
         };
         var brushBtns = new Button[blabels.Length];
         for (int i = 0; i < blabels.Length; i++)
         {
-            var b = BtnAbs(brushPanel.transform, $"Brush_{i}", blabels[i],
-                           new Vector2(5, -5 - i*42f), new Vector2(105,38));
-            b.GetComponent<Image>().color = bcolors[i];
-            brushBtns[i] = b.GetComponent<Button>();
+            var bGo = new GameObject($"Brush_{i}");
+            bGo.transform.SetParent(brushBar.transform, false);
+            var bRT = bGo.AddComponent<RectTransform>();
+            bRT.sizeDelta = new Vector2(72f,38f);
+            var bImg = bGo.AddComponent<Image>();
+            bImg.color = bcolors[i];
+            var bBtn = bGo.AddComponent<Button>();
+            bBtn.targetGraphic = bImg;
+            AddLabel(bGo.transform, blabels[i], 12);
+            brushBtns[i] = bBtn;
         }
 
-        // Right validation panel
-        var valPanel = new GameObject("ValidationPanel"); valPanel.transform.SetParent(cvs.transform, false);
-        var vpRT = valPanel.AddComponent<RectTransform>();
-        vpRT.anchorMin = new Vector2(1,0); vpRT.anchorMax = new Vector2(1,1);
-        vpRT.offsetMin = new Vector2(-145,0); vpRT.offsetMax = new Vector2(0,-55);
-        valPanel.AddComponent<Image>().color = new Color(.11f,.11f,.17f,1f);
-
-        var pcTMP  = ValTMP(valPanel.transform,"PlayerCount", "Player: 0", 0);
-        var bcTMP  = ValTMP(valPanel.transform,"BoxCount",    "Boxes: 0",  1);
-        var gcTMP  = ValTMP(valPanel.transform,"GoalCount",   "Goals: 0",  2);
-        var prTMP  = ValTMP(valPanel.transform,"PortalStatus","o Portals",  3);
-        var drTMP  = ValTMP(valPanel.transform,"DoorStatus",  "o Plates",   4);
-        var errTMP = ValTMP(valPanel.transform,"ErrorText",   "",           5, Color.red, 14);
-
-        // Center grid area — all 3 editor components on same GO (so GetComponent works)
-        var gridArea = new GameObject("GridArea"); gridArea.transform.SetParent(cvs.transform, false);
+        // ── Center Grid Area ──────────────────────────────────────────────
+        var gridArea = new GameObject("GridArea");
+        gridArea.transform.SetParent(cvs.transform, false);
         var gaRT = gridArea.AddComponent<RectTransform>();
         gaRT.anchorMin = new Vector2(0,0); gaRT.anchorMax = new Vector2(1,1);
-        gaRT.offsetMin = new Vector2(115,0); gaRT.offsetMax = new Vector2(-145,-55);
+        gaRT.offsetMin = new Vector2(0,50); gaRT.offsetMax = new Vector2(-180,-55);
         gridArea.AddComponent<Image>().color = new Color(.08f,.08f,.12f,1f);
 
         var edView = gridArea.AddComponent<EditorGridView>();
@@ -335,25 +411,57 @@ public static class AllSceneBuilder
         gridArea.AddComponent<LevelEditorManager>();
         var edUI = gridArea.AddComponent<LevelEditorUI>();
 
-        edUI.btnBack       = btnBack.GetComponent<Button>();
-        edUI.btnNew        = btnNew.GetComponent<Button>();
-        edUI.btnLoadSaved  = btnLoad.GetComponent<Button>();
-        edUI.btnSave       = btnSave.GetComponent<Button>();
-        edUI.btnTestPlay   = btnTest.GetComponent<Button>();
+        // Wire toolbar
+        edUI.btnBack     = btnBack.GetComponent<Button>();
+        edUI.btnNew      = btnNew.GetComponent<Button>();
+        edUI.btnUndo     = btnUndo.GetComponent<Button>();
+        edUI.btnRedo     = btnRedo.GetComponent<Button>();
+        edUI.btnClear    = btnClear.GetComponent<Button>();
+        edUI.btnSave     = btnSave.GetComponent<Button>();
+        edUI.btnTestPlay = btnTest.GetComponent<Button>();
         edUI.levelNameInput = nameIn.GetComponent<TMP_InputField>();
-        edUI.parMovesInput = parIn.GetComponent<TMP_InputField>();
-        edUI.widthInput    = wIn.GetComponent<TMP_InputField>();
-        edUI.heightInput   = hIn.GetComponent<TMP_InputField>();
-        edUI.btnResize     = btnResize.GetComponent<Button>();
-        edUI.brushButtons  = brushBtns;
+        edUI.parMovesInput  = parIn.GetComponent<TMP_InputField>();
+        edUI.widthInput     = wIn.GetComponent<TMP_InputField>();
+        edUI.heightInput    = hIn.GetComponent<TMP_InputField>();
+        edUI.btnResize      = btnResize.GetComponent<Button>();
+
+        // Wire brush bar
+        edUI.brushButtons = brushBtns;
+
+        // Wire validation panel
         edUI.playerCountText  = pcTMP;
         edUI.boxCountText     = bcTMP;
         edUI.goalCountText    = gcTMP;
         edUI.portalStatusText = prTMP;
         edUI.doorStatusText   = drTMP;
         edUI.errorText        = errTMP;
+        edUI.warningsText     = wrnTMP;
+        edUI.hintText         = hntTMP;
+
+        // Wire level list panel
+        edUI.levelListContent = listContent.transform;
+        edUI.btnLoadSelected  = btnLoad.GetComponent<Button>();
+        edUI.btnDelete        = btnDel.GetComponent<Button>();
 
         Save(scene, "LevelEditor");
+    }
+
+    // ValTMP variant using absolute Y from top-left anchor (for variable-height rows)
+    static TextMeshProUGUI ValTMPAt(Transform p, string name, string text,
+        float absY, Color? col = null, int fs = 14, float height = 22f)
+    {
+        var go = new GameObject(name); go.transform.SetParent(p, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0,1); rt.anchorMax = new Vector2(1,1);
+        rt.sizeDelta = new Vector2(0, height);
+        rt.anchoredPosition = new Vector2(0, absY);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = text; tmp.fontSize = fs;
+        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.color = col ?? Color.white;
+        tmp.margin = new Vector4(6,0,0,0);
+        tmp.enableWordWrapping = true;
+        return tmp;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
