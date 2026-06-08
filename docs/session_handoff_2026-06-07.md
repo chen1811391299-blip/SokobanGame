@@ -81,9 +81,9 @@ Implemented in the 25-30 batch:
 - Level 25: `Level 25 - Frozen Stopper Dock`, par 76, solution `DRRRURRDDDDDURDRDDLLLLLLRRUUUULDRRURDDDDLLLLULLDDRULURRRRRRRDD`.
 - Level 26: `Level 26 - Portal Swap Vault`, par 90, solution `DDRUURRDDRUULDDLLUURLDDRRUURDDDRDLUULUULLDLDRRLDDRRUURDDDLDRRRURDUULULLLL`.
 - Level 27: `Level 27 - Gate Relay Vault`, par 74, solution `RRRRRDURRDDDDDLLUUDRRUULLUURRDLULDLDRURRDDLLDLURURRUURDDDDLDR`.
-- Level 28: `Level 28 - Fill Order`, par 160, pure Sokoban 5-box schematic provided by user.
-- Level 29: `Level 29 - Dual Warehouse`, par 220, pure Sokoban 6-box schematic provided by user.
-- Level 30: `Level 30 - Split Depot`, par 300, pure Sokoban 7-box schematic provided by user.
+- Level 28: `Level 28 - Cross Packing`, par 40, screenshot-matched pure Sokoban 5-box chamber, solution `LDUUURRDRDDDLLLUURRDULLDDRRUULD`.
+- Level 29: `Level 29 - Ring Packing`, par 50, screenshot-matched pure Sokoban 6-box chamber, solution `LLULLUUURRDDUULLDDRUDDRDRRULLRRUULD`.
+- Level 30: `Level 30 - Final Ring`, par 45, screenshot-matched pure Sokoban 8-box finale, solution `DDRDUUURRDLRRRDDLDDLLURDRRUULU`.
 
 Still needs redesign or stricter validation:
 

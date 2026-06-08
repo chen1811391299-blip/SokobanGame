@@ -28,7 +28,7 @@ public static class TilePrefabCreator
         Prefab("Prefab_Goal",          matGoal,    1.0f, 0.1f,   1.0f);
         Prefab("Prefab_Box",           matBox,     0.9f, 0.9f,   0.9f);
         Prefab("Prefab_BoxOnGoal",     matBoxG,    0.9f, 0.9f,   0.9f);
-        Prefab("Prefab_Player",        matPlayer,  0.8f, 0.8f,   0.8f);
+        Prefab("Prefab_Player",        matPlayer,  0.55f, 0.45f, 0.55f, PrimitiveType.Capsule, true);
         Prefab("Prefab_Ice",           matIce,     1.0f, 0.1f,   1.0f);
         Prefab("Prefab_PressurePlate", matPlate,   1.0f, 0.05f,  1.0f);
         Prefab("Prefab_DoorClosed",    matDoorC,   1.0f, 0.8f,   0.2f);
@@ -68,16 +68,25 @@ public static class TilePrefabCreator
         return mat;
     }
 
-    static void Prefab(string name, Material mat, float sx, float sy, float sz)
+    static void Prefab(
+        string name,
+        Material mat,
+        float sx,
+        float sy,
+        float sz,
+        PrimitiveType primitive = PrimitiveType.Cube,
+        bool overwriteExisting = false)
     {
         string path = $"Assets/Prefabs/{name}.prefab";
-        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null) return;
+        if (!overwriteExisting && AssetDatabase.LoadAssetAtPath<GameObject>(path) != null) return;
 
-        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        var go = GameObject.CreatePrimitive(primitive);
         go.name = name;
         go.transform.localScale = new Vector3(sx, sy, sz);
         go.GetComponent<Renderer>().sharedMaterial = mat;
-        Object.DestroyImmediate(go.GetComponent<BoxCollider>());
+        var collider = go.GetComponent<Collider>();
+        if (collider != null)
+            Object.DestroyImmediate(collider);
         PrefabUtility.SaveAsPrefabAsset(go, path);
         Object.DestroyImmediate(go);
     }

@@ -11,6 +11,7 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
     private LevelData      _data;
     private GameObject[,]  _tiles;
     private RectTransform  _gridRect;
+    private float          _ox, _oy;   // centering offsets
 
     private static readonly Color[] TileColors =
     {
@@ -35,6 +36,18 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
         _data = data;
         if (_tiles != null)
             foreach (var t in _tiles) if (t) Destroy(t);
+
+        // Auto-fit: fill as much of the grid area as possible
+        Canvas.ForceUpdateCanvases();
+        var area = _gridRect.rect;
+        float fitW = (area.width  - 20f) / data.width;
+        float fitH = (area.height - 20f) / data.height;
+        tileSize = Mathf.Clamp(Mathf.Min(fitW, fitH), 20f, 120f);
+
+        // Centering offsets (from bottom-left of area)
+        _ox = (area.width  - data.width  * tileSize) * 0.5f;
+        _oy = (area.height - data.height * tileSize) * 0.5f;
+
         _tiles = new GameObject[data.width, data.height];
         for (int y = 0; y < data.height; y++)
         for (int x = 0; x < data.width;  x++)
@@ -44,7 +57,9 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
     public void RefreshTile(int x, int y, LevelData data)
     {
         _data = data;
-        if (_tiles == null || _tiles[x, y] == null) return;
+        if (_tiles == null) return;
+        if (x < 0 || x >= _tiles.GetLength(0) || y < 0 || y >= _tiles.GetLength(1)) return;
+        if (_tiles[x, y] == null) return;
         var img = _tiles[x, y].GetComponent<Image>();
         if (img) img.color = GetTileColor(data.GetTile(x, y));
     }
@@ -57,7 +72,7 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
         rt.anchorMax = Vector2.zero;
         rt.pivot = Vector2.zero;
         rt.sizeDelta        = new Vector2(tileSize - 1, tileSize - 1);
-        rt.anchoredPosition = new Vector2(x * tileSize, y * tileSize);
+        rt.anchoredPosition = new Vector2(_ox + x * tileSize, _oy + y * tileSize);
         var img = go.GetComponent<Image>();
         if (img) img.color = GetTileColor(_data.GetTile(x, y));
         _tiles[x, y] = go;
@@ -79,8 +94,8 @@ public class EditorGridView : MonoBehaviour, IPointerClickHandler, IPointerDownH
             _gridRect, e.position, e.pressEventCamera, out var local)) return;
 
         var rect = _gridRect.rect;
-        int x = Mathf.FloorToInt((local.x - rect.xMin) / tileSize);
-        int y = Mathf.FloorToInt((local.y - rect.yMin) / tileSize);
+        int x = Mathf.FloorToInt((local.x - rect.xMin - _ox) / tileSize);
+        int y = Mathf.FloorToInt((local.y - rect.yMin - _oy) / tileSize);
         if (_data == null || !_data.IsInBounds(x, y)) return;
 
         bool erase = e.button == PointerEventData.InputButton.Right

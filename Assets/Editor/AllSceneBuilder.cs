@@ -201,8 +201,19 @@ public static class AllSceneBuilder
                              .GetComponent<TextMeshProUGUI>();
         var nextBtn      = Btn(lcPanel.transform, "NextLevelButton", "Next Level ->", .5f, .37f, 200, 55);
 
+        // D-pad (center-bottom anchor; visible on all platforms, essential on Android)
+        var dpadUp    = BtnCorner(cvs.transform, "DpadUp",    "^", 0.5f, 0, 90, 90, new Vector2(   0, 250));
+        var dpadDown  = BtnCorner(cvs.transform, "DpadDown",  "v", 0.5f, 0, 90, 90, new Vector2(   0,  60));
+        var dpadLeft  = BtnCorner(cvs.transform, "DpadLeft",  "<", 0.5f, 0, 90, 90, new Vector2( -95, 155));
+        var dpadRight = BtnCorner(cvs.transform, "DpadRight", ">", 0.5f, 0, 90, 90, new Vector2(  95, 155));
+        foreach (var d in new[]{ dpadUp, dpadDown, dpadLeft, dpadRight })
+            d.GetComponent<Image>().color = new Color(0.15f, 0.18f, 0.28f, 0.72f);
+
         var backEditorBtn = BtnCorner(cvs.transform, "BackToEditorButton", "<- Editor", 1, 1, 170, 45, new Vector2(-120,-32));
         backEditorBtn.SetActive(false);
+        var saveTestBtn = BtnCorner(cvs.transform, "SaveTestButton", "Save Level", 1, 1, 170, 45, new Vector2(-120,-82));
+        saveTestBtn.GetComponent<Image>().color = new Color(.20f,.48f,.22f);
+        saveTestBtn.SetActive(false);
         var pauseBtn     = BtnCorner(cvs.transform, "PauseButton",   "Pause",       1, 0, 170, 45, new Vector2(-120, 130));
         var restartBtn   = BtnCorner(cvs.transform, "RestartButton", "Restart (R)", 1, 0, 170, 45, new Vector2(-120, 80));
         var menuBtn      = BtnCorner(cvs.transform, "MenuButton",    "Menu",        1, 0, 170, 45, new Vector2(-120, 30));
@@ -235,7 +246,8 @@ public static class AllSceneBuilder
         hud.starsText          = starsTMP;
         hud.bestMovesText      = bestTMP;
         hud.levelCompletePanel = lcPanel;
-        hud.backToEditorButton = backEditorBtn;
+        hud.backToEditorButton  = backEditorBtn;
+        hud.saveFromTestButton  = saveTestBtn;
         hud.pausePanel         = pausePanel;
         hud.allCompletePanel   = allCompletePanel;
         hud.pauseButton        = pauseBtn.GetComponent<Button>();
@@ -248,6 +260,10 @@ public static class AllSceneBuilder
         hud.totalStarsText     = totalStarsTMP;
         hud.allCompleteBtnReplay = replayBtn.GetComponent<Button>();
         hud.allCompleteBtnMenu   = allMenuBtn.GetComponent<Button>();
+        hud.dpadUp    = dpadUp.GetComponent<Button>();
+        hud.dpadDown  = dpadDown.GetComponent<Button>();
+        hud.dpadLeft  = dpadLeft.GetComponent<Button>();
+        hud.dpadRight = dpadRight.GetComponent<Button>();
 
         Save(scene, "Gameplay");
     }
@@ -267,39 +283,39 @@ public static class AllSceneBuilder
         toolbar.transform.SetParent(cvs.transform, false);
         var tbRT = toolbar.AddComponent<RectTransform>();
         tbRT.anchorMin = new Vector2(0,1); tbRT.anchorMax = new Vector2(1,1);
-        tbRT.offsetMin = new Vector2(0,-55); tbRT.offsetMax = Vector2.zero;
+        tbRT.offsetMin = new Vector2(0,-65); tbRT.offsetMax = Vector2.zero;
         toolbar.AddComponent<Image>().color = new Color(.13f,.13f,.18f,1f);
 
-        var btnBack  = BtnAbs(toolbar.transform,"BtnBack",  "Back",  new Vector2(5,-7.5f),   new Vector2(72,40));
+        var btnBack  = BtnAbs(toolbar.transform,"BtnBack",  "Back",  new Vector2(5,-7.5f),   new Vector2(80,50), 20);
         btnBack.GetComponent<Image>().color = new Color(.55f,.20f,.20f);
-        var btnNew   = BtnAbs(toolbar.transform,"BtnNew",   "New",   new Vector2(82,-7.5f),  new Vector2(72,40));
-        var btnUndo  = BtnAbs(toolbar.transform,"BtnUndo",  "Undo",  new Vector2(159,-7.5f), new Vector2(72,40));
-        var btnRedo  = BtnAbs(toolbar.transform,"BtnRedo",  "Redo",  new Vector2(236,-7.5f), new Vector2(72,40));
-        var btnClear = BtnAbs(toolbar.transform,"BtnClear", "Clear", new Vector2(313,-7.5f), new Vector2(72,40));
+        var btnNew   = BtnAbs(toolbar.transform,"BtnNew",   "New",   new Vector2(90,-7.5f),  new Vector2(80,50), 20);
+        var btnUndo  = BtnAbs(toolbar.transform,"BtnUndo",  "Undo",  new Vector2(175,-7.5f), new Vector2(80,50), 20);
+        var btnRedo  = BtnAbs(toolbar.transform,"BtnRedo",  "Redo",  new Vector2(260,-7.5f), new Vector2(80,50), 20);
+        var btnClear = BtnAbs(toolbar.transform,"BtnClear", "Clear", new Vector2(345,-7.5f), new Vector2(80,50), 20);
         btnClear.GetComponent<Image>().color = new Color(.50f,.35f,.10f);
 
-        var nameIn = Input_(toolbar.transform,"LevelNameInput", new Vector2(400,-7.5f), new Vector2(200,40));
-        var parLbl = BtnAbs(toolbar.transform,"ParLabel","Par", new Vector2(607,-7.5f), new Vector2(36,40));
+        var nameIn = Input_(toolbar.transform,"LevelNameInput", new Vector2(440,-7.5f), new Vector2(210,50));
+        var parLbl = BtnAbs(toolbar.transform,"ParLabel","Par", new Vector2(658,-7.5f), new Vector2(40,50), 18);
         parLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
         parLbl.GetComponent<Button>().interactable = false;
-        var parIn = Input_(toolbar.transform,"ParMovesInput", new Vector2(647,-7.5f), new Vector2(55,40));
+        var parIn = Input_(toolbar.transform,"ParMovesInput", new Vector2(700,-7.5f), new Vector2(60,50));
         parIn.GetComponent<TMP_InputField>().text = "20";
 
-        var wLbl = BtnAbs(toolbar.transform,"WLabel","W", new Vector2(715,-7.5f), new Vector2(22,40));
+        var wLbl = BtnAbs(toolbar.transform,"WLabel","W", new Vector2(770,-7.5f), new Vector2(26,50), 18);
         wLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
         wLbl.GetComponent<Button>().interactable = false;
-        var wIn  = Input_(toolbar.transform,"WidthInput",  new Vector2(741,-7.5f), new Vector2(45,40));
-        wIn.GetComponent<TMP_InputField>().text = "8";
-        var hLbl = BtnAbs(toolbar.transform,"HLabel","H", new Vector2(791,-7.5f), new Vector2(22,40));
+        var wIn  = Input_(toolbar.transform,"WidthInput",  new Vector2(796,-7.5f), new Vector2(50,50));
+        wIn.GetComponent<TMP_InputField>().text = "15";
+        var hLbl = BtnAbs(toolbar.transform,"HLabel","H", new Vector2(852,-7.5f), new Vector2(26,50), 18);
         hLbl.GetComponent<Image>().color = new Color(.18f,.18f,.24f);
         hLbl.GetComponent<Button>().interactable = false;
-        var hIn  = Input_(toolbar.transform,"HeightInput", new Vector2(817,-7.5f), new Vector2(45,40));
-        hIn.GetComponent<TMP_InputField>().text = "8";
-        var btnResize = BtnAbs(toolbar.transform,"BtnResize","Resize", new Vector2(867,-7.5f), new Vector2(75,40));
+        var hIn  = Input_(toolbar.transform,"HeightInput", new Vector2(878,-7.5f), new Vector2(50,50));
+        hIn.GetComponent<TMP_InputField>().text = "15";
+        var btnResize = BtnAbs(toolbar.transform,"BtnResize","Resize", new Vector2(934,-7.5f), new Vector2(85,50), 20);
 
-        var btnSave = BtnAbs(toolbar.transform,"BtnSave",    "Save",      new Vector2(955,-7.5f),  new Vector2(85,40));
+        var btnSave = BtnAbs(toolbar.transform,"BtnSave",    "Save",      new Vector2(1032,-7.5f), new Vector2(95,50), 20);
         btnSave.GetComponent<Image>().color = new Color(.20f,.48f,.22f);
-        var btnTest = BtnAbs(toolbar.transform,"BtnTestPlay","Test Play", new Vector2(1045,-7.5f), new Vector2(105,40));
+        var btnTest = BtnAbs(toolbar.transform,"BtnTestPlay","Test Play", new Vector2(1133,-7.5f), new Vector2(115,50), 20);
         btnTest.GetComponent<Image>().color = new Color(.18f,.38f,.70f);
 
         // ── Right Panel (180px, spans full height minus toolbar/brush bar) ──
@@ -307,30 +323,41 @@ public static class AllSceneBuilder
         rightPanel.transform.SetParent(cvs.transform, false);
         var rpRT = rightPanel.AddComponent<RectTransform>();
         rpRT.anchorMin = new Vector2(1,0); rpRT.anchorMax = new Vector2(1,1);
-        rpRT.offsetMin = new Vector2(-180,50); rpRT.offsetMax = new Vector2(0,-55);
+        rpRT.offsetMin = new Vector2(-180,62); rpRT.offsetMax = new Vector2(0,-65);
         rightPanel.AddComponent<Image>().color = new Color(.10f,.10f,.16f,1f);
 
         // Validation rows — using absolute Y from top (negative values, anchor top-left)
         float vy = -8f;
-        var pcTMP  = ValTMPAt(rightPanel.transform,"PlayerCount",  "Player: 0",  vy);           vy -= 24f;
-        var bcTMP  = ValTMPAt(rightPanel.transform,"BoxCount",     "Boxes: 0",   vy);           vy -= 24f;
-        var gcTMP  = ValTMPAt(rightPanel.transform,"GoalCount",    "Goals: 0",   vy);           vy -= 24f;
-        var prTMP  = ValTMPAt(rightPanel.transform,"PortalStatus", "Portals OK", vy);           vy -= 24f;
-        var drTMP  = ValTMPAt(rightPanel.transform,"DoorStatus",   "Doors OK",   vy);           vy -= 24f;
-        var errTMP = ValTMPAt(rightPanel.transform,"ErrorText",    "",           vy, Color.red, 12, 30f); vy -= 34f;
-        var wrnTMP = ValTMPAt(rightPanel.transform,"WarningsText", "",           vy, new Color(1f,.75f,.1f), 11, 50f); vy -= 54f;
-        var hntTMP = ValTMPAt(rightPanel.transform,"HintText",     "",           vy, new Color(.5f,.85f,1f), 11, 30f); vy -= 34f;
-        ValTMPAt(rightPanel.transform,"ListHeader","-- Saved Levels --", vy, new Color(.5f,.5f,.6f), 10); vy -= 24f;
+        var pcTMP  = ValTMPAt(rightPanel.transform,"PlayerCount",  "Player: 0",  vy, null, 16, 26f); vy -= 30f;
+        var bcTMP  = ValTMPAt(rightPanel.transform,"BoxCount",     "Boxes: 0",   vy, null, 16, 26f); vy -= 30f;
+        var gcTMP  = ValTMPAt(rightPanel.transform,"GoalCount",    "Goals: 0",   vy, null, 16, 26f); vy -= 30f;
+        var prTMP  = ValTMPAt(rightPanel.transform,"PortalStatus", "Portals OK", vy, null, 16, 26f); vy -= 30f;
+        var drTMP  = ValTMPAt(rightPanel.transform,"DoorStatus",   "Doors OK",   vy, null, 16, 26f); vy -= 30f;
+        var errTMP = ValTMPAt(rightPanel.transform,"ErrorText",    "",           vy, Color.red, 13, 32f); vy -= 36f;
+        var wrnTMP = ValTMPAt(rightPanel.transform,"WarningsText", "",           vy, new Color(1f,.75f,.1f), 12, 52f); vy -= 56f;
+        var hntTMP = ValTMPAt(rightPanel.transform,"HintText",     "",           vy, new Color(.5f,.85f,1f), 12, 32f); vy -= 36f;
+        ValTMPAt(rightPanel.transform,"ListHeader","-- Saved Levels --", vy, new Color(.5f,.5f,.6f), 11, 26f); vy -= 30f;
 
-        // Scrollable level list — spans from current vy to 80px from panel bottom
-        var listViewport = new GameObject("ListViewport");
-        listViewport.transform.SetParent(rightPanel.transform, false);
+        // Scrollable level list — proper 3-level: ScrollArea(ScrollRect) > Viewport(Mask) > ListContent
+        var scrollArea = new GameObject("LevelScrollArea");
+        scrollArea.transform.SetParent(rightPanel.transform, false);
+        var saRT = scrollArea.AddComponent<RectTransform>();
+        saRT.anchorMin = new Vector2(0,0); saRT.anchorMax = new Vector2(1,1);
+        saRT.offsetMin = new Vector2(4,80);
+        saRT.offsetMax = new Vector2(-4,vy);
+        var listScroll = scrollArea.AddComponent<ScrollRect>();
+        listScroll.horizontal      = false;
+        listScroll.vertical        = true;
+        listScroll.movementType    = ScrollRect.MovementType.Clamped;
+        listScroll.scrollSensitivity = 20f;
+
+        var listViewport = new GameObject("Viewport");
+        listViewport.transform.SetParent(scrollArea.transform, false);
         var lvRT = listViewport.AddComponent<RectTransform>();
-        lvRT.anchorMin = new Vector2(0,0); lvRT.anchorMax = new Vector2(1,1);
-        lvRT.offsetMin = new Vector2(4,80);
-        lvRT.offsetMax = new Vector2(-4,vy);
+        lvRT.anchorMin = Vector2.zero; lvRT.anchorMax = Vector2.one;
+        lvRT.offsetMin = lvRT.offsetMax = Vector2.zero;
         listViewport.AddComponent<Image>().color = new Color(.08f,.08f,.12f);
-        listViewport.AddComponent<Mask>().showMaskGraphic = false;
+        listViewport.AddComponent<Mask>().showMaskGraphic = true;
 
         var listContent = new GameObject("ListContent");
         listContent.transform.SetParent(listViewport.transform, false);
@@ -342,16 +369,12 @@ public static class AllSceneBuilder
         vlg.spacing = 2f;
         vlg.childForceExpandWidth  = true;
         vlg.childForceExpandHeight = false;
-        vlg.childControlHeight = true;
+        vlg.childControlWidth  = true;
+        vlg.childControlHeight = false;
         listContent.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        var listScroll = listViewport.AddComponent<ScrollRect>();
-        listScroll.content         = lcRT;
-        listScroll.viewport        = lvRT;
-        listScroll.horizontal      = false;
-        listScroll.vertical        = true;
-        listScroll.movementType    = ScrollRect.MovementType.Clamped;
-        listScroll.scrollSensitivity = 20f;
+        listScroll.content  = lcRT;
+        listScroll.viewport = lvRT;
 
         // Load Selected / Delete buttons at bottom of right panel
         var btnLoad = BtnAbs(rightPanel.transform,"BtnLoadSelected","Load Selected", new Vector2(4,42), new Vector2(172,34));
@@ -364,7 +387,7 @@ public static class AllSceneBuilder
         brushBar.transform.SetParent(cvs.transform, false);
         var bbRT = brushBar.AddComponent<RectTransform>();
         bbRT.anchorMin = new Vector2(0,0); bbRT.anchorMax = new Vector2(1,0);
-        bbRT.offsetMin = Vector2.zero; bbRT.offsetMax = new Vector2(-180,50);
+        bbRT.offsetMin = Vector2.zero; bbRT.offsetMax = new Vector2(-180,62);
         brushBar.AddComponent<Image>().color = new Color(.11f,.11f,.17f,1f);
 
         var hlg = brushBar.AddComponent<HorizontalLayoutGroup>();
@@ -388,12 +411,12 @@ public static class AllSceneBuilder
             var bGo = new GameObject($"Brush_{i}");
             bGo.transform.SetParent(brushBar.transform, false);
             var bRT = bGo.AddComponent<RectTransform>();
-            bRT.sizeDelta = new Vector2(72f,38f);
+            bRT.sizeDelta = new Vector2(82f,38f);
             var bImg = bGo.AddComponent<Image>();
             bImg.color = bcolors[i];
             var bBtn = bGo.AddComponent<Button>();
             bBtn.targetGraphic = bImg;
-            AddLabel(bGo.transform, blabels[i], 12);
+            AddLabel(bGo.transform, blabels[i], 14);
             brushBtns[i] = bBtn;
         }
 
@@ -402,7 +425,7 @@ public static class AllSceneBuilder
         gridArea.transform.SetParent(cvs.transform, false);
         var gaRT = gridArea.AddComponent<RectTransform>();
         gaRT.anchorMin = new Vector2(0,0); gaRT.anchorMax = new Vector2(1,1);
-        gaRT.offsetMin = new Vector2(0,50); gaRT.offsetMax = new Vector2(-180,-55);
+        gaRT.offsetMin = new Vector2(0,62); gaRT.offsetMax = new Vector2(-180,-65);
         gridArea.AddComponent<Image>().color = new Color(.08f,.08f,.12f,1f);
 
         var edView = gridArea.AddComponent<EditorGridView>();
@@ -570,7 +593,7 @@ public static class AllSceneBuilder
     }
 
     // Btn: absolute position (top-left origin)
-    static GameObject BtnAbs(Transform p, string name, string label, Vector2 apos, Vector2 size)
+    static GameObject BtnAbs(Transform p, string name, string label, Vector2 apos, Vector2 size, int fs = 17)
     {
         var go = new GameObject(name); go.transform.SetParent(p, false);
         var rt = go.AddComponent<RectTransform>();
@@ -579,7 +602,7 @@ public static class AllSceneBuilder
         rt.sizeDelta = size; rt.anchoredPosition = apos;
         go.AddComponent<Image>().color = new Color(.25f,.45f,.85f);
         go.AddComponent<Button>();
-        AddLabel(go.transform, label, 17);
+        AddLabel(go.transform, label, fs);
         return go;
     }
 
@@ -601,7 +624,7 @@ public static class AllSceneBuilder
         tgRT.anchorMin = Vector2.zero; tgRT.anchorMax = Vector2.one;
         tgRT.offsetMin = tgRT.offsetMax = Vector2.zero;
         var tmp = tg.AddComponent<TextMeshProUGUI>();
-        tmp.fontSize = 16; tmp.color = Color.white;
+        tmp.fontSize = 18; tmp.color = Color.white;
         var inp = go.AddComponent<TMP_InputField>();
         inp.textComponent = tmp; inp.textViewport = taRT;
         return go;

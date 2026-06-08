@@ -48,8 +48,21 @@ public class LevelEditorManager : MonoBehaviour
 
     void Start()
     {
-        if (editingLevel == null) NewLevel(8, 8);
-        else LoadLevelForEditing(editingLevel);
+        if (LevelManager.IsTestMode && LevelManager.TestLevel != null)
+        {
+            // Returning from test play — restore the in-progress level
+            var level = LevelManager.TestLevel;
+            LevelManager.IsTestMode = false;
+            LoadLevelForEditing(level);
+        }
+        else if (editingLevel != null)
+        {
+            LoadLevelForEditing(editingLevel);
+        }
+        else
+        {
+            NewLevel(15, 15);
+        }
         AudioManager.PlayBGM(AudioManager.Instance?.bgmEditor);
     }
 
@@ -182,7 +195,7 @@ public class LevelEditorManager : MonoBehaviour
 
         LevelManager.TestLevel = CloneLevel(editingLevel);
         LevelManager.IsTestMode = true;
-        SceneManager.LoadScene("Gameplay");
+        SceneTransition.LoadScene("Gameplay");
     }
 
     public ValidationResult GetValidation() => LevelValidator.Validate(editingLevel);

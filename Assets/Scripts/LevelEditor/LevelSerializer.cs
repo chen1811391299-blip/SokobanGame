@@ -4,7 +4,7 @@ using UnityEngine;
 public static class LevelSerializer
 {
     private static string LevelsDir =>
-        Path.Combine(Application.streamingAssetsPath, "Levels");
+        Path.Combine(Application.persistentDataPath, "Levels");
 
     public static void Save(LevelData data)
     {

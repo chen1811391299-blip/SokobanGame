@@ -16,6 +16,7 @@ public class GameHUD : MonoBehaviour
     [Header("Panels")]
     public GameObject levelCompletePanel;
     public GameObject backToEditorButton;
+    public GameObject saveFromTestButton;
     public GameObject pausePanel;          // 暂停面板
     public GameObject allCompletePanel;    // 全通关面板
     public GameObject portalTutorialPanel;
@@ -37,6 +38,12 @@ public class GameHUD : MonoBehaviour
     public TextMeshProUGUI totalStarsText;
     public Button          allCompleteBtnReplay;
     public Button          allCompleteBtnMenu;
+
+    [Header("Direction Pad")]
+    public Button dpadUp;
+    public Button dpadDown;
+    public Button dpadLeft;
+    public Button dpadRight;
 
     [Header("Mechanic Tutorials")]
     public Button          portalTutorialCloseButton;
@@ -75,6 +82,11 @@ public class GameHUD : MonoBehaviour
         allCompletePanel?.SetActive(false);
         allCompleteBtnReplay?.onClick.AddListener(() => GameManager.Instance?.ReplayAll());
         allCompleteBtnMenu?.onClick.AddListener(()   => GameManager.Instance?.GoToMainMenu());
+
+        dpadUp?.onClick.AddListener(()    => GameManager.Instance?.MovePlayer(Vector2Int.up));
+        dpadDown?.onClick.AddListener(()  => GameManager.Instance?.MovePlayer(Vector2Int.down));
+        dpadLeft?.onClick.AddListener(()  => GameManager.Instance?.MovePlayer(Vector2Int.left));
+        dpadRight?.onClick.AddListener(() => GameManager.Instance?.MovePlayer(Vector2Int.right));
     }
 
     public void SetLevelName(string name)
@@ -123,7 +135,11 @@ public class GameHUD : MonoBehaviour
 
     public void HideAllComplete() => allCompletePanel?.SetActive(false);
 
-    public void ShowBackToEditorButton(bool show) => backToEditorButton?.SetActive(show);
+    public void ShowBackToEditorButton(bool show)
+    {
+        backToEditorButton?.SetActive(show);
+        saveFromTestButton?.SetActive(show);
+    }
 
     public void SetModifierText(string text)
     {
@@ -205,6 +221,29 @@ public class GameHUD : MonoBehaviour
             allCompleteBtnMenu = CreateButton(allCompletePanel.transform, "AllCompleteMenuButton", "Main Menu",
                 new Vector2(0.5f, 0.34f), Vector2.zero, new Vector2(220f, 55f));
         allCompletePanel.SetActive(false);
+
+        if (!dpadUp)    dpadUp    = CreateDpadBtn(parent, "DpadUp",    "^",    new Vector2(   0, 250));
+        if (!dpadDown)  dpadDown  = CreateDpadBtn(parent, "DpadDown",  "v",    new Vector2(   0,  60));
+        if (!dpadLeft)  dpadLeft  = CreateDpadBtn(parent, "DpadLeft",  "<",    new Vector2( -95, 155));
+        if (!dpadRight) dpadRight = CreateDpadBtn(parent, "DpadRight", ">",    new Vector2(  95, 155));
+
+        if (!saveFromTestButton)
+        {
+            var go = new GameObject("SaveTestButton");
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+            rt.sizeDelta = new Vector2(170f, 45f);
+            rt.anchoredPosition = new Vector2(-120f, -82f);
+            go.AddComponent<Image>().color = new Color(0.20f, 0.48f, 0.22f);
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = go.GetComponent<Image>();
+            CreateText(go.transform, "Label", "Save Level", new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(170f, 45f), 18, TextAlignmentOptions.Center);
+            go.SetActive(false);
+            btn.onClick.AddListener(() => GameManager.Instance?.SaveTestLevel());
+            saveFromTestButton = go;
+        }
     }
 
     private void EnsurePortalTutorial()
@@ -449,6 +488,24 @@ public class GameHUD : MonoBehaviour
         var button = go.AddComponent<Button>();
         CreateText(go.transform, "Label", label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 18, TextAlignmentOptions.Center);
         return button;
+    }
+
+    private static Button CreateDpadBtn(Transform parent, string name, string label, Vector2 offset)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);   // center-bottom anchor
+        rt.pivot     = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(90f, 90f);
+        rt.anchoredPosition = offset;
+        var img = go.AddComponent<Image>();
+        img.color = new Color(0.15f, 0.18f, 0.28f, 0.72f);
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        CreateText(go.transform, "Label", label, new Vector2(0.5f, 0.5f),
+            Vector2.zero, new Vector2(90f, 90f), 36, TextAlignmentOptions.Center);
+        return btn;
     }
 
     private static TextMeshProUGUI CreateText(Transform parent, string name, string text, Vector2 anchor,

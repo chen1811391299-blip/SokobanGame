@@ -640,86 +640,76 @@ Legend: `#` wall, `.` goal, `$` box, `@` player, `A` paired portal.
 
 Legend: `#` wall, `.` goal, `$` box, `@` player, `A` paired portal, `p` pressure plate, `D` door.
 
-## Level 28 - Fill Order
+## Level 28 - Cross Packing
 
-- Size: 15x11
+- Size: 7x7
 - Difficulty: Hard Finale
 - Mechanics: none
-- Player goal: pure Sokoban 5-box target-fill sequence; the lower goal room must be filled in the right order, and a right-side wall-hugging box can block later deliveries if staged too early
-- Verified move sequence: user-provided reverse-validated schematic; sequence not recorded in project docs
-- Verified moves: not recorded
-- Par moves: 160
-- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present
+- Player goal: screenshot-matched pure Sokoban 5-box chamber; the player must unpack the central box cluster into the cross-shaped target layout without sealing the lower parking row
+- Verified move sequence: `LDUUURRDRDDDLLLUURRDULLDDRRUULD`
+- Verified moves: 31
+- Verified pushes: 7
+- Par moves: 40
+- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present; `x` cells are empty background cells used to match the screenshot silhouette
 
 ```text
-###############
-#    @        #
-# ###$# ### # #
-#   # # #   # #
-### #.  # ### #
-#   ##### .   #
-# #  .$   #$# #
-# # #####.# # #
-#   # $.# $ # #
-#     #       #
-###############
+x#####x
+##   ##
+#  #  #
+#.$@$.#
+# $$$ #
+#. . .#
+#######
 ```
 
 Legend: `#` wall, `.` goal, `$` box, `@` player.
 
-## Level 29 - Dual Warehouse
+## Level 29 - Ring Packing
 
-- Size: 17x12
+- Size: 7x8
 - Difficulty: Hard Finale
 - Mechanics: none
-- Player goal: pure Sokoban 6-box dual-warehouse dispatch; the left and right target rooms compete for temporary parking space, so the player must choose which side to seal first
-- Verified move sequence: user-provided reverse-validated schematic; sequence not recorded in project docs
-- Verified moves: not recorded
-- Par moves: 220
-- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present
+- Player goal: screenshot-matched pure Sokoban 6-box ring chamber; the alternating box/goal pattern forces the player to unwind the center stack without blocking the lower-right exit lane
+- Verified move sequence: `LLULLUUURRDDUULLDDRUDDRDRRULLRRUULD`
+- Verified moves: 35
+- Verified pushes: 10
+- Par moves: 50
+- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present; `x` cells are empty background cells used to match the screenshot silhouette
 
 ```text
-#################
-#               #
-# #### ### #### #
-# #.$. # # .$.# #
-# # ## # # ## # #
-# $ #       #   #
-### # ##### # ###
-#   #       # $ #
-# # ## # # ## # #
-# #@$. # # .$ # #
-#               #
-#################
+x####xx
+##  ###
+# .$. #
+# $.$ #
+# $.$ #
+# .$. #
+###  @#
+xx#####
 ```
 
 Legend: `#` wall, `.` goal, `$` box, `@` player.
 
-## Level 30 - Split Depot
+## Level 30 - Final Ring
 
-- Size: 19x13
+- Size: 8x8
 - Difficulty: Hard Finale
 - Mechanics: none
-- Player goal: pure Sokoban 7-box split-target finale; the right-top and left-bottom target zones can both be sealed prematurely, and the central corridor must be reused as a recirculation lane
-- Verified move sequence: user-provided reverse-validated schematic; sequence not recorded in project docs
-- Verified moves: not recorded
-- Par moves: 300
-- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present; the seventh box is retained from the provided schematic as an extra interference box
+- Player goal: screenshot-matched pure Sokoban 8-box finale; the player must peel the surrounding box ring into the central target room while preserving enough access around the outer corridor
+- Verified move sequence: `DDRDUUURRDLRRRDDLDDLLURDRRUULU`
+- Verified moves: 30
+- Verified pushes: 8
+- Par moves: 45
+- Mechanic requirement: no portals, doors, pressure plates, or ice tiles are present
 
 ```text
-###################
-#                 #
-# ##### ### ##### #
-# #     # #     # #
-# # ### # # ### # #
-#   #   # #  .#.$ #
-### # ### ###$# ###
-# $ #  $@ # . $ # #
-# # ##### ##### # #
-# #.$. .# #     # #
-# #####$# # ##### #
-#                 #
-###################
+########
+#@     #
+# .$$. #
+# $..$ #
+# $..$ #
+# .$$. #
+#      #
+########
 ```
 
 Legend: `#` wall, `.` goal, `$` box, `@` player.

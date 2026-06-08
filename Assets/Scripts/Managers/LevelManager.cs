@@ -60,7 +60,7 @@ public class LevelManager : MonoBehaviour
 
     private void LoadCustomLevels()
     {
-        string dir = Path.Combine(Application.streamingAssetsPath, "Levels");
+        string dir = Path.Combine(Application.persistentDataPath, "Levels");
         if (!Directory.Exists(dir)) return;
         foreach (var file in Directory.GetFiles(dir, "*.json"))
         {

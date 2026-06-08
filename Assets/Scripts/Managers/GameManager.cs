@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
+        Screen.orientation = ScreenOrientation.LandscapeLeft;
     }
 
     void Start()
@@ -193,10 +194,20 @@ public class GameManager : MonoBehaviour
 
     public void BackToEditor()
     {
-        LevelManager.IsTestMode = false;
+        // IsTestMode intentionally NOT cleared here — LevelEditorManager.Start() uses it to restore the level
         Unsubscribe();
         SceneTransition.LoadScene("LevelEditor");
     }
+
+    public void SaveTestLevel()
+    {
+        if (!LevelManager.IsTestMode || LevelManager.TestLevel == null) return;
+        LevelSerializer.Save(LevelManager.TestLevel);
+        LevelManager.Instance?.Refresh();
+        hud?.SetLevelName("Saved!");
+    }
+
+    public void MovePlayer(Vector2Int dir) => playerController?.MoveInDirection(dir);
 
     public void GoToMainMenu()
     {

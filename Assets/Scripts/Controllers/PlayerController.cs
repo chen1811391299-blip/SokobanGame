@@ -76,4 +76,10 @@ public class PlayerController : MonoBehaviour
     }
 
     public void ResetMoves() { _moves = 0; OnMoveCountChanged?.Invoke(0); }
+
+    public void MoveInDirection(Vector2Int dir)
+    {
+        if (!InputEnabled || _grid == null) return;
+        TryMove(dir);
+    }
 }

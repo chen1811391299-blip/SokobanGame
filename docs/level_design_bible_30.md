@@ -55,9 +55,9 @@ The 30 levels are divided into five acts of six levels each.
 | 25 | Frozen Stopper Dock | Hard Finale | Pure ice relay where one stopper box is recovered, then the stopped box and lower ice box must be rerouted into separate goals | Implemented |
 | 26 | Portal Swap Vault | Hard Finale | Pure portal vault where two box transfers and a final reverse transfer all depend on the same portal pair | Implemented |
 | 27 | Gate Relay Vault | Hard Finale | Pressure gate plus portal vault where opening the gate, recovering the left target, and finishing two far right goals are interdependent | Implemented |
-| 28 | Fill Order | Hard Finale | Pure Sokoban 5-box target-fill sequence where wrong early deposits can block the central delivery lane | Implemented |
-| 29 | Dual Warehouse | Hard Finale | Pure Sokoban 6-box dual-warehouse dispatch where both target rooms compete for parking and sealing order | Implemented |
-| 30 | Split Depot | Hard Finale | Pure Sokoban 7-box split-target finale using central recirculation and one extra interference box | Implemented |
+| 28 | Cross Packing | Hard Finale | Screenshot-matched pure Sokoban 5-box chamber with a central packing cluster and cross-shaped target distribution | Implemented |
+| 29 | Ring Packing | Hard Finale | Screenshot-matched pure Sokoban 6-box ring chamber with alternating boxes and goals around a tight central target lane | Implemented |
+| 30 | Final Ring | Hard Finale | Screenshot-matched pure Sokoban 8-box finale with a compact ring of boxes around the central target room | Implemented |
 
 ## Verification Standard
 

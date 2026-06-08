@@ -62,7 +62,7 @@ public class SokobanGrid
         }
 
         _portals.Clear();
-        foreach (var p in data.portalPairs)
+        foreach (var p in data.portalPairs ?? Array.Empty<PortalPair>())
         {
             _portals[p.posA] = p.posB;
             _portals[p.posB] = p.posA;

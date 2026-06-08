@@ -41,6 +41,7 @@ public class LevelEditorUI : MonoBehaviour
 
     private LevelEditorManager _editor;
     private Color[] _brushOriginalColors;
+    private Image[] _brushSelectionFrames;      // gold border overlay per brush button
     private int     _selectedBrushIdx = 1;      // default: Wall brush
     private string  _selectedLevelId  = null;
     private const int EraseBrushIdx   = 12;
@@ -55,7 +56,7 @@ public class LevelEditorUI : MonoBehaviour
             SceneTransition.LoadScene("MainMenu");
         });
 
-        btnNew?.onClick.AddListener(() => _editor?.NewLevel(8, 8));
+        btnNew?.onClick.AddListener(() => _editor?.NewLevel(15, 15));
 
         btnUndo?.onClick.AddListener(() => _editor?.UndoLastAction());
         btnRedo?.onClick.AddListener(() => _editor?.RedoLastAction());
@@ -92,6 +93,25 @@ public class LevelEditorUI : MonoBehaviour
             {
                 var img = brushButtons[i]?.GetComponent<Image>();
                 _brushOriginalColors[i] = img ? img.color : Color.gray;
+            }
+
+            // Create gold selection frame for each brush button
+            _brushSelectionFrames = new Image[brushButtons.Length];
+            for (int i = 0; i < brushButtons.Length; i++)
+            {
+                if (brushButtons[i] == null) continue;
+                var frameGo = new GameObject("SelFrame");
+                frameGo.transform.SetParent(brushButtons[i].transform, false);
+                frameGo.transform.SetAsFirstSibling();
+                var frameRT = frameGo.AddComponent<RectTransform>();
+                frameRT.anchorMin = Vector2.zero;
+                frameRT.anchorMax = Vector2.one;
+                frameRT.offsetMin = new Vector2(-3f, -3f);
+                frameRT.offsetMax = new Vector2(3f, 3f);
+                var frameImg = frameGo.AddComponent<Image>();
+                frameImg.color = new Color(0f, 0.9f, 1f);   // cyan — distinct from all brush colours
+                frameGo.SetActive(false);
+                _brushSelectionFrames[i] = frameImg;
             }
 
             for (int i = 0; i < brushButtons.Length; i++)
@@ -136,6 +156,12 @@ public class LevelEditorUI : MonoBehaviour
         _selectedLevelId = null;
         UpdateListButtons();
 
+        // Force canvas layout so parent rect has valid width before adding children
+        Canvas.ForceUpdateCanvases();
+        var contentRT  = levelListContent as RectTransform;
+        float entryW   = contentRT != null && contentRT.rect.width > 10f
+                         ? contentRT.rect.width : 164f;   // fallback if layout not yet ready
+
         var metas = LevelSerializer.GetAllLevelMeta();
         foreach (var (id, name, modified) in metas)
         {
@@ -143,11 +169,15 @@ public class LevelEditorUI : MonoBehaviour
             var entryGo = new GameObject($"Entry_{id}");
             entryGo.transform.SetParent(levelListContent, false);
 
+            // Fixed-width entry so text never wraps to single-char columns
             var rt = entryGo.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 1);
-            rt.anchorMax = new Vector2(1, 1);
+            rt.anchorMin = rt.anchorMax = Vector2.zero;
             rt.pivot     = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(0, 36f);
+            rt.sizeDelta = new Vector2(entryW, 36f);
+            var le = entryGo.AddComponent<LayoutElement>();
+            le.preferredHeight = 36f;
+            le.preferredWidth  = entryW;
+            le.flexibleWidth   = 1f;
 
             var img = entryGo.AddComponent<Image>();
             img.color = new Color(0.15f, 0.18f, 0.25f);
@@ -164,10 +194,12 @@ public class LevelEditorUI : MonoBehaviour
             labelRt.offsetMin = new Vector2(6, 2);
             labelRt.offsetMax = new Vector2(-4, -2);
             var tmp = label.AddComponent<TextMeshProUGUI>();
-            tmp.text      = $"{name}\n<size=10><color=#aaaaaa>{modified:yyyy-MM-dd}</color></size>";
-            tmp.fontSize  = 12;
-            tmp.color     = Color.white;
-            tmp.raycastTarget = false;
+            tmp.text               = $"{name}\n<size=10><color=#aaaaaa>{modified:yyyy-MM-dd}</color></size>";
+            tmp.fontSize           = 12;
+            tmp.color              = Color.white;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode       = TextOverflowModes.Ellipsis;
+            tmp.raycastTarget      = false;
         }
     }
 
@@ -192,12 +224,14 @@ public class LevelEditorUI : MonoBehaviour
         _editor ??= LevelEditorManager.Instance;
         if (_editor == null || brushButtons == null) return;
 
-        // Restore previous button colour
+        // Deselect previous: restore original colour and hide gold frame
         if (_selectedBrushIdx < brushButtons.Length)
         {
             var prevImg = brushButtons[_selectedBrushIdx]?.GetComponent<Image>();
             if (prevImg != null && _brushOriginalColors != null && _selectedBrushIdx < _brushOriginalColors.Length)
                 prevImg.color = _brushOriginalColors[_selectedBrushIdx];
+            if (_brushSelectionFrames != null && _selectedBrushIdx < _brushSelectionFrames.Length)
+                _brushSelectionFrames[_selectedBrushIdx]?.gameObject.SetActive(false);
         }
 
         _selectedBrushIdx = idx;
@@ -212,11 +246,14 @@ public class LevelEditorUI : MonoBehaviour
             _editor.SelectedBrush = (TileType)idx;
         }
 
-        // Highlight selected button with white tint
+        // Highlight selected: brighten colour + show gold frame
         if (idx < brushButtons.Length)
         {
             var img = brushButtons[idx]?.GetComponent<Image>();
-            if (img) img.color = Color.white;
+            if (img != null && _brushOriginalColors != null && idx < _brushOriginalColors.Length)
+                img.color = _brushOriginalColors[idx] * 1.8f;   // brighten, clamped to 1 per channel
+            if (_brushSelectionFrames != null && idx < _brushSelectionFrames.Length)
+                _brushSelectionFrames[idx]?.gameObject.SetActive(true);
         }
     }
 
